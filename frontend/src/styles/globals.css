@@ -121,6 +121,26 @@ html {
     }
   }
 
+  @keyframes spin-reverse {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
@@ -139,6 +159,10 @@ html {
 
   .animate-scale-in {
     animation: scale-in 0.5s ease-out;
+  }
+
+  .animate-spin-reverse {
+    animation: spin-reverse 2s linear infinite;
   }
 }
 

@@ -12,10 +12,13 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BACKEND_URL } from "@/lib/config";
 import { toast } from "sonner";
+import { SpinnerCustom } from "./loadercomponent";
 export const Interviewpage = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [github,setgithub]=useState<string>("")
+  const [loading, setLoading] = useState(false);
+  
   async function submitgithuburl(){
     if (!github || github.trim() === "") {
       toast.error("GitHub URL is required", {
@@ -23,12 +26,31 @@ export const Interviewpage = () => {
       });
       return;
     }
-    const response = await axios.post(`${BACKEND_URL}/github-verification`, {
-      githubUrl: github
-    });
-    console.log(response)
+    
+    setLoading(true);
+    try {
+      const response = await axios.post(`${BACKEND_URL}/github-verification`, {
+        githuburl: github  // Changed from githubUrl to githuburl
+      });
+      toast.success("GitHub profile loaded!", {
+        description: "Starting your personalized interview...",
+      });
+      console.log(response);
+      navigate("/loading-content")
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error("Error loading GitHub profile", {
+        description: errorMessage || "Please check your GitHub URL and try again.",
+      });
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
   }
   return (
+    <>
+      {loading && <SpinnerCustom />}
+      {!loading && (
     <div className="min-h-screen bg-gradient-to-br from-background to-card transition-colors duration-300">
       {/* Header with Theme Toggle */}
       <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
@@ -105,8 +127,9 @@ export const Interviewpage = () => {
                 className="w-full h-11 text-base font-semibold rounded-lg transition-all duration-200 hover:shadow-lg"
                 size="lg"
                 onClick={submitgithuburl}
+                disabled={loading}
               >
-                Start Interview
+                {loading ? "Loading..." : "Start Interview"}
               </Button>
             </div>
 
@@ -127,5 +150,7 @@ export const Interviewpage = () => {
         </div>
       </main>
     </div>
+      )}
+    </>
   )
 }

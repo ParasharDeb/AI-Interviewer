@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Landingpage } from "./components/pages/landingpage"
 import { Interviewpage } from "./components/pages/Interviewpage"
 import { Toaster } from "sonner"
+import { SpinnerCustom } from "./components/pages/loadercomponent"
 
 
 export function App() {
@@ -13,7 +14,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Landingpage />} />
           <Route path="/interview" element={<Interviewpage />} />
-          
+          <Route path="/loading-content" element={<SpinnerCustom />} />
         </Routes>
       </BrowserRouter>
       <Toaster/>

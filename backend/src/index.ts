@@ -1,8 +1,10 @@
 import axios from "axios"
 import express from "express"
+import cors from 'cors'
 import { userdetails } from "./types"
 const app=express()
 app.use(express.json())
+app.use(cors())
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
     if(!success){

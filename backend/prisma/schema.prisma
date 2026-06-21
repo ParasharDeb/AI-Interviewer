@@ -15,7 +15,7 @@ model Interview{
   id                String      @id  @default(uuid())
   githubmetadata    Json
   status            InterviewStatus
-  score             Int
+  score             Int         @default(0)
   messages          Messages[]
 }
 model Messages{

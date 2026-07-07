@@ -2,9 +2,11 @@ import "styles/globals.css"
 import { ThemeProvider } from "./lib/theme-context"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Landingpage } from "./components/pages/landingpage"
-import { Interviewpage } from "./components/pages/Interviewpage"
+import { InformationPage } from "./components/pages/informationPage"
 import { Toaster } from "sonner"
 import { SpinnerCustom } from "./components/pages/loadercomponent"
+import Interviewage from "./components/pages/Interviewpage"
+
 
 
 export function App() {
@@ -13,8 +15,9 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landingpage />} />
-          <Route path="/interview" element={<Interviewpage />} />
+          <Route path="/information" element={<InformationPage />} />
           <Route path="/loading-content" element={<SpinnerCustom />} />
+          <Route path="/interview" element={<Interviewage/>}/>
         </Routes>
       </BrowserRouter>
       <Toaster/>

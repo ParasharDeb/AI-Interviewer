@@ -36,10 +36,22 @@ app.post("/github-verification",async(req,res)=>{
         fullName:x.fullName,
         starcount:x.stargazers_count
     }))
-    
-    res.json({
-        githubrepodetails
-    })
+    try {
+        const data= await prisma.interview.create({
+            data:{
+                githubmetadata:githubrepodetails,
+                status:'Inprocess',
+            }
+        })
+        res.json({
+            id:data.id
+        })
+    } catch (error) {
+        res.json({
+            "error":error
+        })
+    }
+
 })
 
 

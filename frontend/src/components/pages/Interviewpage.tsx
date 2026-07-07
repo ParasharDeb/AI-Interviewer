@@ -52,45 +52,52 @@ export default function InterviewPage() {
       window.setTimeout(() => setAiState("idle"), speakDuration);
     }, thinkDelay);
   }
-  useEffect(()=>{
-    
-    const ai = new GoogleGenAI({
-      apiKey: API_KEY, // Temporary for testing
+useEffect(() => {
+  const ai = new GoogleGenAI({
+    apiKey: API_KEY,
+  });
+
+  let session: any;
+
+  async function connect() {
+    session = await ai.live.connect({
+      model: "gemini-3.1-flash-live-preview",
+      config: {
+        responseModalities: [Modality.AUDIO],
+      },
+      callbacks: {
+        onopen() {
+          console.log("Connected");
+        },
+
+        onmessage(message) {
+          console.log(message);
+        },
+
+        onerror(err) {
+          console.error(err);
+        },
+
+        onclose(event) {
+          console.log("Closed", event.reason);
+        },
+      },
     });
 
-    let session: any;
+    console.log("Session started");
+    console.log(session);
 
-    async function connect() {
-      session = await ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
-        config: {
-          responseModalities: [Modality.AUDIO],
-        },
-        callbacks: {
-          onopen() {
-            console.log("Connected");
-          },
-          onmessage(message) {
-            console.log(message);
-          },
-          onerror(err) {
-            console.error(err);
-          },
-          onclose(event) {
-            console.log("Closed", event.reason);
-          },
-        },
-      });
+    session.sendRealtimeInput({
+      text: "Hello! Please introduce yourself.",
+    });
+  }
 
-      console.log("Session started");
-    }
+  connect();
 
-    connect();
-
-    return () => {
-      session?.close();
-    };
-  },[])
+  return () => {
+    session?.close();
+  };
+}, []);
   // ---- theme tokens -------------------------------------------------
   const bg = isDark ? "#0a0a0c" : "#eceeef";
   const panel = isDark ? "#131316" : "#ffffff";
@@ -356,3 +363,6 @@ export default function InterviewPage() {
     </div>
   );
 }
+
+
+

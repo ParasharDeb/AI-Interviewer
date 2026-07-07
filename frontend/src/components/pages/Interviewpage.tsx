@@ -1,8 +1,8 @@
-"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sun, Moon, Mic } from "lucide-react";
-
+import { GoogleGenAI, Modality } from "@google/genai";
+import { API_KEY } from "@/lib/config";
 type Message = {
   sender: "me" | "ai";
   text: string;
@@ -10,12 +10,6 @@ type Message = {
 
 type AiState = "idle" | "thinking" | "speaking";
 
-const AI_REPLIES = [
-  "That's a solid approach — can you walk me through how you'd handle edge cases?",
-  "Interesting. What tradeoffs did you consider before landing on that?",
-  "Good. Let's go a level deeper — how would this scale under load?",
-  "I see. How would you explain that decision to a non-technical stakeholder?",
-];
 
 export default function InterviewPage() {
   const socket = useRef<WebSocket | null>(null);
@@ -58,7 +52,45 @@ export default function InterviewPage() {
       window.setTimeout(() => setAiState("idle"), speakDuration);
     }, thinkDelay);
   }
+  useEffect(()=>{
+    
+    const ai = new GoogleGenAI({
+      apiKey: API_KEY, // Temporary for testing
+    });
 
+    let session: any;
+
+    async function connect() {
+      session = await ai.live.connect({
+        model: "gemini-3.1-flash-live-preview",
+        config: {
+          responseModalities: [Modality.AUDIO],
+        },
+        callbacks: {
+          onopen() {
+            console.log("Connected");
+          },
+          onmessage(message) {
+            console.log(message);
+          },
+          onerror(err) {
+            console.error(err);
+          },
+          onclose(event) {
+            console.log("Closed", event.reason);
+          },
+        },
+      });
+
+      console.log("Session started");
+    }
+
+    connect();
+
+    return () => {
+      session?.close();
+    };
+  },[])
   // ---- theme tokens -------------------------------------------------
   const bg = isDark ? "#0a0a0c" : "#eceeef";
   const panel = isDark ? "#131316" : "#ffffff";

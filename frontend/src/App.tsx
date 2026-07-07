@@ -7,9 +7,6 @@ import { Toaster } from "sonner"
 import { SpinnerCustom } from "./components/pages/loadercomponent"
 import InterviewPage from "./components/pages/InterviewPage"
 
-
-
-
 export function App() {
   return (
     <ThemeProvider>

@@ -30,13 +30,13 @@ export const InformationPage = () => {
     setLoading(true);
     try {
       const response = await axios.post(`${BACKEND_URL}/github-verification`, {
-        githuburl: github  // Changed from githubUrl to githuburl
+        githuburl: github  
       });
       toast.success("GitHub profile loaded!", {
         description: "Starting your personalized interview...",
       });
       console.log(response);
-      navigate("/loading-content")
+      navigate(`/interview/${response.data.id}`)
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message;
       toast.error("Error loading GitHub profile", {

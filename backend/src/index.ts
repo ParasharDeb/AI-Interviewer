@@ -43,6 +43,9 @@ app.post("/github-verification",async(req,res)=>{
                 status:'Inprocess',
             }
         })
+        res.json({
+            "id":data.id
+        })
     } catch (error) {
         res.json({
             "error":error

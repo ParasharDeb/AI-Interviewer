@@ -37,7 +37,7 @@ export const Landingpage = () => {
           <div className="flex items-center gap-4">
             <button className="text-muted-foreground hover:text-foreground transition-colors">Docs</button>
             <button className="text-muted-foreground hover:text-foreground transition-colors">Features</button>
-            <Button size="sm" onClick={() => navigate("/interview")}>Get Started</Button>
+            <Button size="sm" onClick={() => navigate("/information")}>Get Started</Button>
           </div>
         </div>
       </nav>

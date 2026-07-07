@@ -43,9 +43,6 @@ app.post("/github-verification",async(req,res)=>{
                 status:'Inprocess',
             }
         })
-        res.json({
-            id:data.id
-        })
     } catch (error) {
         res.json({
             "error":error
@@ -53,8 +50,28 @@ app.post("/github-verification",async(req,res)=>{
     }
 
 })
+app.get("/interview/:id",async(req,res)=>{
+    const {id} = req.params
+    if(!id){
+        return
+    }
+    try {
+          const data = await prisma.interview.findFirst({
+        where:{
+            id:id
+        }
+    })
+    res.json({
+        "githubdata":data?.githubmetadata
+    })  
+    } catch (error) {
+        res.json({
+            "message":error
+        })
+    }
 
-
+    
+})
 //socket.io code
 io.on('connection', (socket: Socket) => {
   console.log('a user connected');

@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sun, Moon, Mic } from "lucide-react";
 import { GoogleGenAI, Modality } from "@google/genai";
-import { API_KEY } from "@/lib/config";
+
+import { MediaHandler } from "@/handlers/media-handler";
+// import { GeminiClient } from "@/handlers/gemini-client";
 type Message = {
   sender: "me" | "ai";
   text: string;
@@ -14,7 +16,7 @@ type AiState = "idle" | "thinking" | "speaking";
 export default function InterviewPage() {
   const socket = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
+  const sessionRef = useRef<any>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
@@ -26,7 +28,8 @@ export default function InterviewPage() {
   const [aiState, setAiState] = useState<AiState>("idle");
 
   const isDark = theme === "dark";
-
+  const mediaHandler = new MediaHandler();
+  // const gemini = new GeminiClient();
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, aiState]);
@@ -53,49 +56,18 @@ export default function InterviewPage() {
     }, thinkDelay);
   }
 useEffect(() => {
-  const ai = new GoogleGenAI({
-    apiKey: API_KEY,
-  });
+  const mediaHandler = new MediaHandler();
 
-  let session: any;
-
-  async function connect() {
-    session = await ai.live.connect({
-      model: "gemini-3.1-flash-live-preview",
-      config: {
-        responseModalities: [Modality.AUDIO],
-      },
-      callbacks: {
-        onopen() {
-          console.log("Connected");
-        },
-
-        onmessage(message) {
-          console.log(message);
-        },
-
-        onerror(err) {
-          console.error(err);
-        },
-
-        onclose(event) {
-          console.log("Closed", event.reason);
-        },
-      },
-    });
-
-    console.log("Session started");
-    console.log(session);
-
-    session.sendRealtimeInput({
-      text: "Hello! Please introduce yourself.",
+  async function init() {
+    await mediaHandler.startAudio((pcm:any) => {
+      console.log("PCM", pcm.byteLength);
     });
   }
 
-  connect();
+  init();
 
   return () => {
-    session?.close();
+    mediaHandler.stopAudio();
   };
 }, []);
   // ---- theme tokens -------------------------------------------------

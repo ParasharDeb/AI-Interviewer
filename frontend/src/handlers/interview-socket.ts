@@ -1,16 +1,16 @@
-type GeminiClientConfig = {
+type InterviewSockettypes = {
   onOpen?: () => void;
   onMessage?: (event: MessageEvent) => void;
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
 };
-export class GeminiClient {
+export class InterviewSocket {
   public websocket:WebSocket|null
   public onOpen?: () => void;
   public onMessage?: (event: MessageEvent) => void;
   public onClose?: (event: CloseEvent) => void;
   public onError?: (event: Event) => void;
-  constructor(config:GeminiClientConfig) {
+  constructor(config:InterviewSockettypes) {
     this.websocket = null;
     this.onOpen = config.onOpen;
     this.onMessage = config.onMessage;
@@ -20,7 +20,7 @@ export class GeminiClient {
 
   connect() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//localhost:5050`;
 
     this.websocket = new WebSocket(wsUrl);
     this.websocket.binaryType = "arraybuffer";
@@ -61,7 +61,9 @@ export class GeminiClient {
       })
     );
   }
-
+  sendAudio(audio: ArrayBuffer) {
+    this.send(audio);
+  }
   disconnect() {
     if (this.websocket) {
       this.websocket.close();

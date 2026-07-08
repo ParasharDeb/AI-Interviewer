@@ -4,7 +4,7 @@ import { Send, User, Sun, Moon, Mic } from "lucide-react";
 import { GoogleGenAI, Modality } from "@google/genai";
 
 import { MediaHandler } from "@/handlers/media-handler";
-// import { GeminiClient } from "@/handlers/gemini-client";
+import { InterviewSocket } from "@/handlers/interview-socket";
 type Message = {
   sender: "me" | "ai";
   text: string;
@@ -14,7 +14,7 @@ type AiState = "idle" | "thinking" | "speaking";
 
 
 export default function InterviewPage() {
-  const socket = useRef<WebSocket | null>(null);
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sessionRef = useRef<any>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -28,8 +28,8 @@ export default function InterviewPage() {
   const [aiState, setAiState] = useState<AiState>("idle");
 
   const isDark = theme === "dark";
-  const mediaHandler = new MediaHandler();
-  // const gemini = new GeminiClient();
+
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, aiState]);
@@ -57,7 +57,24 @@ export default function InterviewPage() {
   }
 useEffect(() => {
   const mediaHandler = new MediaHandler();
+  const socket  = new InterviewSocket({
+    onOpen: () => {
+    console.log("Connected to backend");
+  },
 
+  onMessage: (event) => {
+    console.log(event.data);
+  },
+
+  onClose: () => {
+    console.log("Closed");
+  },
+
+  onError: (err) => {
+    console.error(err);
+  },
+  });
+  socket.connect()
   async function init() {
     await mediaHandler.startAudio((pcm:any) => {
       console.log("PCM", pcm.byteLength);
@@ -68,6 +85,7 @@ useEffect(() => {
 
   return () => {
     mediaHandler.stopAudio();
+    socket.disconnect()
   };
 }, []);
   // ---- theme tokens -------------------------------------------------

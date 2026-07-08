@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sun, Moon, Mic } from "lucide-react";
-import { GoogleGenAI, Modality } from "@google/genai";
+
 
 import { MediaHandler } from "@/handlers/media-handler";
 import { InterviewSocket } from "@/handlers/interview-socket";
@@ -46,14 +46,14 @@ export default function InterviewPage() {
     // socket.current?.send(JSON.stringify({ type: "message", text }));
 
     const thinkDelay = 900 + Math.random() * 700;
-    window.setTimeout(() => {
-      const reply = AI_REPLIES[Math.floor(Math.random() * AI_REPLIES.length)];
-      setAiState("speaking");
-      setMessages((prev) => [...prev, { sender: "ai", text: reply }]);
+    // window.setTimeout(() => {
+    //   const reply = AI_REPLIES[Math.floor(Math.random() * AI_REPLIES.length)];
+    //   setAiState("speaking");
+    //   setMessages((prev) => [...prev, { sender: "ai", text: reply }]);
 
-      const speakDuration = 1800 + reply.length * 25;
-      window.setTimeout(() => setAiState("idle"), speakDuration);
-    }, thinkDelay);
+    //   const speakDuration = 1800 + reply.length * 25;
+    //   window.setTimeout(() => setAiState("idle"), speakDuration);
+    // }, thinkDelay);
   }
 useEffect(() => {
   const mediaHandler = new MediaHandler();

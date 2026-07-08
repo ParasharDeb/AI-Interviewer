@@ -68,7 +68,7 @@ registerProcessor("pcm-processor", PCMProcessor);
         "pcm-processor"
       );
 
-      this.audioWorkletNode.port.onmessage = (event) => {
+      this.audioWorkletNode.port.onmessage = (event:any) => {
         if (this.isRecording) {
           const downsampled = this.downsampleBuffer(
             event.data,
@@ -97,7 +97,7 @@ registerProcessor("pcm-processor", PCMProcessor);
   stopAudio() {
     this.isRecording = false;
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((t) => t.stop());
+      this.mediaStream.getTracks().forEach((t:any) => t.stop());
       this.mediaStream = null;
     }
     if (this.audioWorkletNode) {
@@ -146,7 +146,7 @@ registerProcessor("pcm-processor", PCMProcessor);
 
   stopVideo(videoElement:any) {
     if (this.videoStream) {
-      this.videoStream.getTracks().forEach((t) => t.stop());
+      this.videoStream.getTracks().forEach((t:any) => t.stop());
       this.videoStream = null;
     }
     if (this.videoInterval) {
@@ -167,7 +167,7 @@ registerProcessor("pcm-processor", PCMProcessor);
     onFrame(base64);
   }
 
-  playAudio(arrayBuffer:any) {
+  playAudio(arrayBuffer: any) {
     if (!this.audioContext) return;
     if (this.audioContext.state === "suspended") {
       this.audioContext.resume();
@@ -177,8 +177,10 @@ registerProcessor("pcm-processor", PCMProcessor);
 
     const float32Data = new Float32Array(pcmData.length);
     for (let i = 0; i < pcmData.length; i++) {
-      
-      float32Data[i] = pcmData[i] / 32768.0;
+      const sample = pcmData[i];
+      if (sample !== undefined) {
+        float32Data[i] = sample / 32768.0;
+      }
     }
 
     const buffer = this.audioContext.createBuffer(1, float32Data.length, 24000);
@@ -201,7 +203,7 @@ registerProcessor("pcm-processor", PCMProcessor);
   }
 
   stopAudioPlayback() {
-    this.scheduledSources.forEach((s) => {
+    this.scheduledSources.forEach((s:any) => {
       try {
         s.stop();
       } catch (e) {}

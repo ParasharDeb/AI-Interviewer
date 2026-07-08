@@ -77,7 +77,7 @@ useEffect(() => {
   socket.connect()
   async function init() {
     await mediaHandler.startAudio((pcm:any) => {
-      console.log("PCM", pcm.byteLength);
+      socket.sendAudio(pcm)
     });
   }
 

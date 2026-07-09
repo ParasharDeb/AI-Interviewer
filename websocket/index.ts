@@ -15,10 +15,10 @@ wss.on("connection", async (socket) => {
   // Create ONE Gemini session for this client
   const session = await ai.live.connect({
     model: "gemini-3.1-flash-live-preview",
-
     config: {
-      responseModalities: [Modality.AUDIO],
-    },
+        responseModalities: [Modality.AUDIO],
+        systemInstruction: process.env.GEMINI_PROMPT!
+        },
 
     callbacks: {
       onopen() {

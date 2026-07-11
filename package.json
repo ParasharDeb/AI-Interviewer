@@ -1,0 +1,9 @@
+{
+  "name": "mycore",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "db"
+  ]
+}

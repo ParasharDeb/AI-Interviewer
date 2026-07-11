@@ -9,7 +9,7 @@ CREATE TABLE "Interview" (
     "id" TEXT NOT NULL,
     "githubmetadata" JSONB NOT NULL,
     "status" "InterviewStatus" NOT NULL,
-    "score" INTEGER NOT NULL,
+    "score" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Interview_pkey" PRIMARY KEY ("id")
 );

@@ -1,10 +1,8 @@
-import { Socket } from "socket.io";
-import http from "http";
-import { Server } from 'socket.io';
+
 import express from "express"
 import cors from 'cors'
 import { userdetails } from "./types"
-import {prisma} from "./db"
+import {prisma} from "@repo/db"
 import axios from "axios"
 
 const app=express()
@@ -12,12 +10,6 @@ app.use(express.json())
 app.use(cors())
 
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
-});
 
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
@@ -75,13 +67,5 @@ app.get("/interview/:id",async(req,res)=>{
 
     
 })
-//socket.io code
-io.on('connection', (socket: Socket) => {
-  console.log('a user connected');
 
-  socket.on("disconnect", () => {
-    console.log("user disconnected");
-    
-  })
-});
-server.listen(8080)
+app.listen(8080)

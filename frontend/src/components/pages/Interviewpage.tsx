@@ -1,18 +1,15 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Send, User, Sun, Moon, Mic } from "lucide-react";
-
+import { Send, User, Sun, Moon } from "lucide-react";
 
 import { MediaHandler } from "@/handlers/media-handler";
 import { InterviewSocket } from "@/handlers/interview-socket";
+import { useTheme } from "@/lib/theme-context";
 type Message = {
   sender: "me" | "ai";
   text: string;
 };
-
 type AiState = "idle" | "thinking" | "speaking";
-
-
 export default function InterviewPage() {
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -24,8 +21,8 @@ export default function InterviewPage() {
     },
   ]);
   const [input, setInput] = useState("");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const { theme, toggleTheme } = useTheme();
 
   const isDark = theme === "dark";
 
@@ -74,25 +71,18 @@ useEffect(() => {
   },
 
   onMessage: (event) => {
-    
-
     const msg = JSON.parse(event.data);
-
     if (msg.type === "transcript") {
         console.log(msg.text);
     }
-
     if (msg.type === "audio") {
       const arrayBuffer = base64ToArrayBuffer(msg.data);
       mediaHandler.playAudio(arrayBuffer);
     }
-
   },
-
   onClose: () => {
     console.log("Closed");
   },
-
   onError: (err) => {
     console.error(err);
   },
@@ -103,9 +93,7 @@ useEffect(() => {
       socket.sendAudio(pcm)
     });
   }
-
   init();
-
   return () => {
     mediaHandler.stopAudio();
     socket.disconnect()
@@ -196,7 +184,7 @@ useEffect(() => {
             </div>
 
             <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
+              onClick={toggleTheme}
               aria-label="Toggle theme"
               className="flex items-center justify-center h-10 w-10 rounded-full transition-colors"
               style={{ background: panelAlt, border: `1px solid ${border}` }}

@@ -1,11 +1,11 @@
-import { ArrowRight, Github, Zap, Brain, Target, ChevronDown } from "lucide-react";
+import { ArrowRight, Github, Zap, Brain, Target, ChevronDown, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme-context";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const Landingpage = () => {
-  const { toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -34,9 +34,17 @@ export const Landingpage = () => {
             </div>
             <span className="font-bold text-xl text-foreground hidden sm:inline">InterviewAI</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button className="text-muted-foreground hover:text-foreground transition-colors">Docs</button>
             <button className="text-muted-foreground hover:text-foreground transition-colors">Features</button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border border-border/60 bg-background/70 text-foreground hover:bg-accent/10 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <Button size="sm" onClick={() => navigate("/information")}>Get Started</Button>
           </div>
         </div>
@@ -76,12 +84,10 @@ export const Landingpage = () => {
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
             }`}
           >
-            <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/interview")}>
+            <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/information")}>
               Start Free <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 text-base h-12" onClick={() => navigate("/interview")}>
-              <Github className="w-4 h-4" /> Connect GitHub
-            </Button>
+            
           </div>
 
           {/* Scroll Indicator */}

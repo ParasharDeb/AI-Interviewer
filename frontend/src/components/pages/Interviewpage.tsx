@@ -63,7 +63,19 @@ useEffect(() => {
   },
 
   onMessage: (event) => {
-    console.log(event.data);
+    
+
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "transcript") {
+        console.log(msg.text);
+    }
+
+    if (msg.type === "audio") {
+        
+        console.log(msg.text)
+    }
+
   },
 
   onClose: () => {

@@ -26,7 +26,31 @@ wss.on("connection", async (socket) => {
       },
 
       onmessage(message) {
-        console.log("Gemini:", message);
+        const content = message.serverContent;
+        if (content?.modelTurn?.parts) {
+    for (const part of content.modelTurn.parts) {
+
+        if (part.inlineData) {
+
+            socket.send(
+                JSON.stringify({
+                    type: "audio",
+                    data: part.inlineData.data
+                })
+            );
+
+        }
+
+    }
+}
+if (content?.outputTranscription) {
+    socket.send(
+        JSON.stringify({
+            type: "transcript",
+            text: content.outputTranscription.text
+        })
+    );
+}
       },
 
       onerror(error) {
@@ -51,6 +75,7 @@ wss.on("connection", async (socket) => {
         mimeType: "audio/pcm;rate=16000",
       },
     });
+
   });
 
   socket.on("close", () => {

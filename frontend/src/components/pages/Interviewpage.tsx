@@ -55,6 +55,17 @@ export default function InterviewPage() {
     //   window.setTimeout(() => setAiState("idle"), speakDuration);
     // }, thinkDelay);
   }
+  function base64ToArrayBuffer(base64: string) {
+    const binary = atob(base64);
+
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes.buffer;
+}
 useEffect(() => {
   const mediaHandler = new MediaHandler();
   const socket  = new InterviewSocket({
@@ -72,8 +83,8 @@ useEffect(() => {
     }
 
     if (msg.type === "audio") {
-        
-        console.log(msg.text)
+      const arrayBuffer = base64ToArrayBuffer(msg.data);
+      mediaHandler.playAudio(arrayBuffer);
     }
 
   },

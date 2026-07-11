@@ -1,12 +1,13 @@
 
 import express from "express"
 import cors from 'cors'
-import { Signupdetails, userdetails } from "./types"
+import { Signindetails, Signupdetails, userdetails } from "./types"
 import {prisma} from "@repo/db"
 import axios from "axios"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "./config"
+import tr from "zod/v4/locales/tr.js"
 const app=express()
 app.use(express.json())
 app.use(cors())
@@ -54,7 +55,43 @@ app.post("/signup",async(req,res)=>{
         })
     }
 })
-
+app.post("/signin",async(req,res)=>{
+    const {success,data}=Signindetails.safeParse(req.body)
+    if(!success){
+        res.status(402).json({
+            message:"Invalid credentials"
+        })
+    }
+    try {
+        const existingUser=await prisma.User.findFirst({
+            where:{
+                email:data?.email
+            }
+        })
+        if(!existingUser){
+            res.json({
+                message:"Email doesnt exist"
+            })
+        }
+        if(!data?.password){
+            return
+        }
+        const matchedpassword=await bcrypt.compare(data.password,existingUser.password)
+        if(!matchedpassword){
+            res.status(402).json({
+                message:"Password incorrect"
+            })
+        }
+        const token=jwt.sign(existingUser.id,JWT_SECRET)
+        res.json({
+            token:token
+        })
+    } catch (error) {
+        res.status(402).json({
+            message:error
+        })
+    }
+})
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
     if(!success){

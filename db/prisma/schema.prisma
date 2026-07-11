@@ -11,13 +11,22 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
+model User{
+  id          String            @id @default(uuid())
+  username    String
+  password    String
+  email       String
+  tokens      Int               @default(3)
+  Interview   Interview[]
+}
 model Interview{
   id                String      @id  @default(uuid())
   githubmetadata    Json
   status            InterviewStatus
   score             Int         @default(0)
   messages          Messages[]
+  userID            String
+  User              User        @relation(fields: [userID],references: [id])
 }
 model Messages{
   id          String        @id @default(uuid())

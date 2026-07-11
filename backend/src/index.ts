@@ -1,4 +1,3 @@
-
 import express from "express"
 import cors from 'cors'
 import { Signindetails, Signupdetails, userdetails } from "./types"
@@ -7,14 +6,15 @@ import axios from "axios"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "./config"
-import tr from "zod/v4/locales/tr.js"
+
 const app=express()
 app.use(express.json())
 app.use(cors())
+
 app.post("/signup",async(req,res)=>{
     const {success,data}=Signupdetails.safeParse(req.body);
     if(!success){
-        res.json({
+        return res.status(402).json({
             message:"Please enter the correct credentials"
         })
     }
@@ -25,40 +25,37 @@ app.post("/signup",async(req,res)=>{
             }
         })
         if(existingEmail){
-            res.status(402).json({
+            return res.status(402).json({
                 message:"Email already exists"
             })
         }
         if(!data?.password){
-        return
-    }
-    const hashedPassword=await bcrypt.hash(data?.password,10)
-    try {
+            return res.status(402).json({
+                message:"Password is required"
+            })
+        }
+        const hashedPassword=await bcrypt.hash(data?.password,10)
         const user= await prisma.User.create({
             data:{
-            username:data?.username,
-            password:hashedPassword,
-            email:data?.email
+                username:data?.username,
+                password:hashedPassword,
+                email:data?.email
             }
         })
-    res.json({
-        "UserId":user.id
-    })    
+        return res.json({
+            userId:user.id
+        })
     } catch (error) {
-        res.json(error)
-        return
-    }
-        
-    } catch (error) {
-        res.status(402).json({
+        return res.status(402).json({
             message:error
         })
     }
 })
+
 app.post("/signin",async(req,res)=>{
     const {success,data}=Signindetails.safeParse(req.body)
     if(!success){
-        res.status(402).json({
+        return res.status(402).json({
             message:"Invalid credentials"
         })
     }
@@ -69,29 +66,32 @@ app.post("/signin",async(req,res)=>{
             }
         })
         if(!existingUser){
-            res.json({
+            return res.status(402).json({
                 message:"Email doesnt exist"
             })
         }
         if(!data?.password){
-            return
+            return res.status(402).json({
+                message:"Password is required"
+            })
         }
         const matchedpassword=await bcrypt.compare(data.password,existingUser.password)
         if(!matchedpassword){
-            res.status(402).json({
+            return res.status(402).json({
                 message:"Password incorrect"
             })
         }
-        const token=jwt.sign(existingUser.id,JWT_SECRET)
-        res.json({
+        const token=jwt.sign({ userId: existingUser.id },JWT_SECRET)
+        return res.json({
             token:token
         })
     } catch (error) {
-        res.status(402).json({
+        return res.status(402).json({
             message:error
         })
     }
 })
+
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
     if(!success){
@@ -127,6 +127,7 @@ app.post("/github-verification",async(req,res)=>{
     }
 
 })
+
 app.get("/interview/:id",async(req,res)=>{
     const {id} = req.params
     if(!id){

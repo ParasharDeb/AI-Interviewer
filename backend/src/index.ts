@@ -1,14 +1,36 @@
 
 import express from "express"
 import cors from 'cors'
-import { userdetails } from "./types"
+import { Signupdetails, userdetails } from "./types"
 import {prisma} from "@repo/db"
 import axios from "axios"
 
 const app=express()
 app.use(express.json())
 app.use(cors())
-
+app.post("/signup",async(req,res)=>{
+    const {success,data}=Signupdetails.safeParse(req.body);
+    if(!success){
+        res.json({
+            message:"Please enter the correct credentials"
+        })
+    }
+    try {
+    const user= await prisma.User.create({
+        data:{
+            username:data?.username,
+            password:data?.password,
+            email:data?.email
+        }
+    })
+    res.json({
+        "UserId":user.id
+    })    
+    } catch (error) {
+        res.json(error)
+        return
+    }
+})
 
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
@@ -32,6 +54,7 @@ app.post("/github-verification",async(req,res)=>{
             data:{
                 githubmetadata:githubrepodetails,
                 status:'Inprocess',
+                userID:"abc123"
             }
         })
         res.json({
@@ -66,7 +89,5 @@ app.get("/interview/:id",async(req,res)=>{
 
     
 })
-app.post("/signup",async(req,res)=>{
-    
-})
+
 app.listen(8080)

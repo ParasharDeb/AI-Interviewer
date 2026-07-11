@@ -269,7 +269,7 @@ export type InterviewCreateInput = {
   status: $Enums.InterviewStatus
   score?: number
   messages?: Prisma.MessagesCreateNestedManyWithoutInterviewInput
-  User: Prisma.UserCreateNestedOneWithoutInterviewInput
+  User?: Prisma.UserCreateNestedOneWithoutInterviewInput
 }
 
 export type InterviewUncheckedCreateInput = {
@@ -277,7 +277,7 @@ export type InterviewUncheckedCreateInput = {
   githubmetadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   status: $Enums.InterviewStatus
   score?: number
-  userID: string
+  userID?: string
   messages?: Prisma.MessagesUncheckedCreateNestedManyWithoutInterviewInput
 }
 
@@ -304,7 +304,7 @@ export type InterviewCreateManyInput = {
   githubmetadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   status: $Enums.InterviewStatus
   score?: number
-  userID: string
+  userID?: string
 }
 
 export type InterviewUpdateManyMutationInput = {
@@ -485,7 +485,7 @@ export type InterviewCreateWithoutMessagesInput = {
   githubmetadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   status: $Enums.InterviewStatus
   score?: number
-  User: Prisma.UserCreateNestedOneWithoutInterviewInput
+  User?: Prisma.UserCreateNestedOneWithoutInterviewInput
 }
 
 export type InterviewUncheckedCreateWithoutMessagesInput = {
@@ -493,7 +493,7 @@ export type InterviewUncheckedCreateWithoutMessagesInput = {
   githubmetadata: Prisma.JsonNullValueInput | runtime.InputJsonValue
   status: $Enums.InterviewStatus
   score?: number
-  userID: string
+  userID?: string
 }
 
 export type InterviewCreateOrConnectWithoutMessagesInput = {

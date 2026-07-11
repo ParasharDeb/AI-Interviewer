@@ -25,7 +25,7 @@ model Interview{
   status            InterviewStatus
   score             Int         @default(0)
   messages          Messages[]
-  userID            String
+  userID            String      
   User              User        @relation(fields: [userID],references: [id])
 }
 model Messages{

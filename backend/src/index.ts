@@ -10,7 +10,6 @@ app.use(express.json())
 app.use(cors())
 
 
-
 app.post("/github-verification",async(req,res)=>{
     const {success,data}=userdetails.safeParse(req.body)
     if(!success){
@@ -67,5 +66,7 @@ app.get("/interview/:id",async(req,res)=>{
 
     
 })
-
+app.post("/signup",async(req,res)=>{
+    
+})
 app.listen(8080)

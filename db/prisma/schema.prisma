@@ -15,7 +15,7 @@ model User{
   id          String            @id @default(uuid())
   username    String
   password    String
-  email       String
+  email       String            @unique
   tokens      Int               @default(3)
   Interview   Interview[]
 }

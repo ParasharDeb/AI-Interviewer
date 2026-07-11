@@ -4,7 +4,9 @@ import cors from 'cors'
 import { Signupdetails, userdetails } from "./types"
 import {prisma} from "@repo/db"
 import axios from "axios"
-
+import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
+import { JWT_SECRET } from "./config"
 const app=express()
 app.use(express.json())
 app.use(cors())
@@ -16,19 +18,40 @@ app.post("/signup",async(req,res)=>{
         })
     }
     try {
-    const user= await prisma.User.create({
-        data:{
-            username:data?.username,
-            password:data?.password,
-            email:data?.email
+        const existingEmail=await prisma.User.findFirst({
+            where:{
+                email:data?.email
+            }
+        })
+        if(existingEmail){
+            res.status(402).json({
+                message:"Email already exists"
+            })
         }
-    })
+        if(!data?.password){
+        return
+    }
+    const hashedPassword=await bcrypt.hash(data?.password,10)
+    try {
+        const user= await prisma.User.create({
+            data:{
+            username:data?.username,
+            password:hashedPassword,
+            email:data?.email
+            }
+        })
     res.json({
         "UserId":user.id
     })    
     } catch (error) {
         res.json(error)
         return
+    }
+        
+    } catch (error) {
+        res.status(402).json({
+            message:error
+        })
     }
 })
 
@@ -54,7 +77,7 @@ app.post("/github-verification",async(req,res)=>{
             data:{
                 githubmetadata:githubrepodetails,
                 status:'Inprocess',
-                userID:"abc123"
+                userID:"686ce7d2-451b-435f-aaf3-4590bd8d6be6"
             }
         })
         res.json({

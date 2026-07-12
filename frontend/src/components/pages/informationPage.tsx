@@ -17,6 +17,7 @@ export const InformationPage = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [github,setgithub]=useState<string>("")
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   
   async function submitgithuburl(){
@@ -119,6 +120,22 @@ export const InformationPage = () => {
                 />
                 <FieldDescription className="text-xs text-muted-foreground">
                   We'll analyze your GitHub profile to personalize your interview experience.
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="resume-upload" className="text-base font-semibold">
+                  Resume 
+                </FieldLabel>
+                <input
+                  id="resume-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+                  className="mt-2 block w-full text-sm text-muted-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+                />
+                <FieldDescription className="text-xs text-muted-foreground">
+                  {resumeFile ? `Selected file: ${resumeFile.name}` : "Upload a resume to help tailor your interview prep."}
                 </FieldDescription>
               </Field>
 

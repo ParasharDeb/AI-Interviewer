@@ -12,7 +12,7 @@ type AiState = "idle" | "thinking" | "speaking";
 export default function InterviewPage() {
   const {interviewId}=useParams()
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const sessionRef = useRef<any>(null);
+  const socketRef = useRef<InterviewSocket | null>(null);
   const [input, setInput] = useState("");
   const [aiState, setAiState] = useState<AiState>("idle");
   const { theme, toggleTheme } = useTheme();
@@ -22,6 +22,7 @@ export default function InterviewPage() {
       text: "Whenever you're ready, tell me a bit about yourself and the role you're preparing for.",
     },
   ]);
+  const [pendingAiMessage, setPendingAiMessage] = useState("");
 
   const isDark = theme === "dark";
 
@@ -37,19 +38,11 @@ export default function InterviewPage() {
     setMessages((prev) => [...prev, { sender: "me", text }]);
     setInput("");
     setAiState("thinking");
+    setPendingAiMessage("");
 
-    // Placeholder for real-time backend wiring, e.g.:
-    // socket.current?.send(JSON.stringify({ type: "message", text }));
-
-    const thinkDelay = 900 + Math.random() * 700;
-    // window.setTimeout(() => {
-    //   const reply = AI_REPLIES[Math.floor(Math.random() * AI_REPLIES.length)];
-    //   setAiState("speaking");
-    //   setMessages((prev) => [...prev, { sender: "ai", text: reply }]);
-
-    //   const speakDuration = 1800 + reply.length * 25;
-    //   window.setTimeout(() => setAiState("idle"), speakDuration);
-    // }, thinkDelay);
+    if (socketRef.current) {
+      socketRef.current.sendText(text);
+    }
   }
   function base64ToArrayBuffer(base64: string) {
     const binary = atob(base64);
@@ -64,42 +57,66 @@ export default function InterviewPage() {
 }
 useEffect(() => {
   const mediaHandler = new MediaHandler();
-  console.log(interviewId)
-  const socket  = new InterviewSocket({
+  const socket = new InterviewSocket({
     InterviewID:interviewId,
     onOpen: () => {
       console.log("Connected to backend");
     },
     onMessage: (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === "transcript") {
-        console.log(msg.text);
-    }
-    if (msg.type === "audio") {
-      const arrayBuffer = base64ToArrayBuffer(msg.data);
-      mediaHandler.playAudio(arrayBuffer);
-    }
+      const msg = JSON.parse(event.data);
+      if (msg.type === "transcript") {
+        const transcript = msg.text?.trim();
+        if (transcript) {
+          setPendingAiMessage((prev) => prev + (prev ? " " : "") + transcript);
+          setAiState("speaking");
+        }
+      }
+      if (msg.type === "audio") {
+        const arrayBuffer = base64ToArrayBuffer(msg.data);
+        mediaHandler.playAudio(arrayBuffer);
+      }
     },
     onClose: () => {
-    console.log("Closed");
+      console.log("Closed");
     },
     onError: (err) => {
-    console.error(err);
+      console.error(err);
     },
   });
-  socket.connect()
+
+  socketRef.current = socket;
+  socket.connect();
+
   async function init() {
-    await mediaHandler.startAudio((pcm:any) => {
-      socket.sendAudio(pcm)
+    await mediaHandler.startAudio((pcm: any) => {
+      socket.sendAudio(pcm);
     });
   }
+
   init();
   return () => {
     mediaHandler.stopAudio();
-    socket.disconnect()
+    socket.disconnect();
   };
-}, []);
-  // ---- theme tokens -------------------------------------------------
+}, [interviewId]);
+
+useEffect(() => {
+  if (!pendingAiMessage) return;
+
+  const timeout = window.setTimeout(() => {
+    setMessages((prev) => {
+      const lastMessage = prev[prev.length - 1];
+      if (lastMessage?.sender === "ai") {
+        return [...prev.slice(0, -1), { sender: "ai", text: pendingAiMessage }];
+      }
+      return [...prev, { sender: "ai", text: pendingAiMessage }];
+    });
+    setPendingAiMessage("");
+  }, 700);
+
+  return () => window.clearTimeout(timeout);
+}, [pendingAiMessage]);
+
   const bg = isDark ? "#0a0a0c" : "#eceeef";
   const panel = isDark ? "#131316" : "#ffffff";
   const panelAlt = isDark ? "#18181b" : "#f4f4f5";
@@ -319,6 +336,17 @@ useEffect(() => {
                 </div>
               </div>
             ))}
+
+            {pendingAiMessage && (
+              <div className="flex justify-start">
+                <div
+                  className="max-w-xl rounded-2xl px-5 py-3 text-[15px] leading-relaxed"
+                  style={{ background: bubbleAi, color: bubbleAiText }}
+                >
+                  {pendingAiMessage}
+                </div>
+              </div>
+            )}
 
             {aiState === "thinking" && (
               <div className="flex justify-start">

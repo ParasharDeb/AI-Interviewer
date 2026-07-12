@@ -52,7 +52,7 @@ export class InterviewSocket {
   }
 
   sendText(text:any) {
-    this.send(JSON.stringify({ text: text }));
+    this.send(JSON.stringify({ type: "message", text }));
   }
 
   sendImage(base64Data:any, mimeType = "image/jpeg") {

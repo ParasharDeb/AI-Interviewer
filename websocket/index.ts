@@ -44,10 +44,8 @@ wss.on("connection", async (socket,req) => {
       onmessage(message) {
         const content = message.serverContent;
         if (content?.modelTurn?.parts) {
-    for (const part of content.modelTurn.parts) {
-
+        for (const part of content.modelTurn.parts) {
         if (part.inlineData) {
-
             socket.send(
                 JSON.stringify({
                     type: "audio",

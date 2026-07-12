@@ -1,5 +1,7 @@
+import 'dotenv/config'
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { prisma } from "@repo/db";
 
 const wss = new WebSocketServer({
   port: 5050,
@@ -12,16 +14,26 @@ const ai = new GoogleGenAI({
 wss.on("connection", async (socket,req) => {
   console.log("Frontend connected");
   const url = new URL(req.url!, "http://localhost");
-
   const interviewId = url.searchParams.get("interviewId");
-
+  if(!interviewId){
+    return
+  }
+  const githubmetadata=await prisma.interview.findFirst({
+    where:{
+      id:interviewId
+    }
+  })
   console.log(interviewId);
-  // Create ONE Gemini session for this client
+  console.log(githubmetadata)
+  function InterviewMaker(){
+    const finalPrompt=`You are a senior level Backend developer at a software company. you need to take a backend interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}` 
+    return finalPrompt
+  }
   const session = await ai.live.connect({
     model: "gemini-3.1-flash-live-preview",
     config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: process.env.GEMINI_PROMPT!
+        systemInstruction:InterviewMaker()
         },
 
     callbacks: {

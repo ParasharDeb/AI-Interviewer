@@ -1,28 +1,27 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sun, Moon } from "lucide-react";
-
 import { MediaHandler } from "@/handlers/media-handler";
 import { InterviewSocket } from "@/handlers/interview-socket";
 import { useTheme } from "@/lib/theme-context";
+import { useParams } from "react-router-dom";
 type Message = {
   sender: "me" | "ai";
   text: string;
 };
 type AiState = "idle" | "thinking" | "speaking";
 export default function InterviewPage() {
-
+  const {interviewId}=useParams()
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sessionRef = useRef<any>(null);
+  const [input, setInput] = useState("");
+  const [aiState, setAiState] = useState<AiState>("idle");
+  const { theme, toggleTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "ai",
       text: "Whenever you're ready, tell me a bit about yourself and the role you're preparing for.",
     },
   ]);
-  const [input, setInput] = useState("");
-  const [aiState, setAiState] = useState<AiState>("idle");
-  const { theme, toggleTheme } = useTheme();
 
   const isDark = theme === "dark";
 
@@ -65,12 +64,13 @@ export default function InterviewPage() {
 }
 useEffect(() => {
   const mediaHandler = new MediaHandler();
+  console.log(interviewId)
   const socket  = new InterviewSocket({
+    InterviewID:interviewId,
     onOpen: () => {
-    console.log("Connected to backend");
-  },
-
-  onMessage: (event) => {
+      console.log("Connected to backend");
+    },
+    onMessage: (event) => {
     const msg = JSON.parse(event.data);
     if (msg.type === "transcript") {
         console.log(msg.text);
@@ -79,13 +79,13 @@ useEffect(() => {
       const arrayBuffer = base64ToArrayBuffer(msg.data);
       mediaHandler.playAudio(arrayBuffer);
     }
-  },
-  onClose: () => {
+    },
+    onClose: () => {
     console.log("Closed");
-  },
-  onError: (err) => {
+    },
+    onError: (err) => {
     console.error(err);
-  },
+    },
   });
   socket.connect()
   async function init() {

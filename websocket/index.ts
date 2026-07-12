@@ -9,9 +9,13 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-wss.on("connection", async (socket) => {
+wss.on("connection", async (socket,req) => {
   console.log("Frontend connected");
+  const url = new URL(req.url!, "http://localhost");
 
+  const interviewId = url.searchParams.get("interviewId");
+
+  console.log(interviewId);
   // Create ONE Gemini session for this client
   const session = await ai.live.connect({
     model: "gemini-3.1-flash-live-preview",

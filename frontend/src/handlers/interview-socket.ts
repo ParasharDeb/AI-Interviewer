@@ -3,15 +3,18 @@ type InterviewSockettypes = {
   onMessage?: (event: MessageEvent) => void;
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
+  InterviewID?:String
 };
 export class InterviewSocket {
   public websocket:WebSocket|null
+  public InterviewID:String|undefined
   public onOpen?: () => void;
   public onMessage?: (event: MessageEvent) => void;
   public onClose?: (event: CloseEvent) => void;
   public onError?: (event: Event) => void;
   constructor(config:InterviewSockettypes) {
     this.websocket = null;
+    this.InterviewID=config.InterviewID;
     this.onOpen = config.onOpen;
     this.onMessage = config.onMessage;
     this.onClose = config.onClose;
@@ -20,7 +23,7 @@ export class InterviewSocket {
 
   connect() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//localhost:5050`;
+    const wsUrl = `${protocol}//localhost:5050?interviewId=${this.InterviewID}`;
 
     this.websocket = new WebSocket(wsUrl);
     this.websocket.binaryType = "arraybuffer";

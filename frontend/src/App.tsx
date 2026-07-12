@@ -17,7 +17,7 @@ export function App() {
           <Route path="/information" element={<InformationPage />} />
           <Route path="/loading-content" element={<SpinnerCustom />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/interview/:id" element={<InterviewPage/>}/>
+          <Route path="/interview/:interviewId" element={<InterviewPage/>}/>
         </Routes>
       </BrowserRouter>
       <Toaster/>

@@ -1,42 +1,269 @@
-import { ArrowRight, Github, Zap, Brain, Target, ChevronDown, Moon, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  AnimatePresence,
+  type Variants,
+} from "framer-motion";
+import {
+  ArrowRight,
+  Github,
+  GitCommitHorizontal,
+  MessageSquareText,
+  Gauge,
+  Sparkles,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme-context";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+// ---------------------------------------------------------------------------
+// Signature element: a looping mock interview transcript. It types itself
+// out line by line, the way a terminal session would, then shows the score
+// the AI gives the (invented) candidate. This is the whole pitch of the
+// product in miniature: it reads your code, then asks about it.
+// ---------------------------------------------------------------------------
+
+type Line = { speaker: "system" | "interviewer" | "candidate"; text: string };
+
+const SCRIPT: Line[] = [
+  { speaker: "system", text: "$ connect github.com/achen/rate-limiter" },
+  { speaker: "system", text: "> indexing 22 repos — Go, Redis, gRPC" },
+  { speaker: "system", text: "> opening rate-limiter · last commit 3d ago" },
+  {
+    speaker: "interviewer",
+    text: "You swapped a fixed bucket for a sliding window in limiter.go. What broke that made you switch?",
+  },
+  {
+    speaker: "candidate",
+    text: "We were letting through double the limit right at the window edge, so—",
+  },
+  { speaker: "interviewer", text: "Right at the edge, specifically — walk me through the exact request pattern." },
+];
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = () => setReduced(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
+
+const InterviewTerminal = () => {
+  const reducedMotion = useReducedMotion();
+  const [lineIndex, setLineIndex] = useState(reducedMotion ? SCRIPT.length : 0);
+  const [charIndex, setCharIndex] = useState(reducedMotion ? SCRIPT[SCRIPT.length - 1].text.length : 0);
+  const [showScore, setShowScore] = useState(reducedMotion);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    const line = SCRIPT[lineIndex];
+
+    if (!line) {
+      // finished the script — hold, then loop
+      timeoutRef.current = setTimeout(() => {
+        setShowScore(false);
+        setLineIndex(0);
+        setCharIndex(0);
+      }, 4200);
+      return () => clearTimeout(timeoutRef.current);
+    }
+
+    if (charIndex < line.text.length) {
+      const speed = line.speaker === "candidate" ? 18 : 24;
+      timeoutRef.current = setTimeout(() => setCharIndex((c) => c + 1), speed);
+    } else {
+      const pause = line.speaker === "interviewer" ? 900 : 500;
+      timeoutRef.current = setTimeout(() => {
+        setLineIndex((i) => i + 1);
+        setCharIndex(0);
+        if (lineIndex === SCRIPT.length - 1) setShowScore(true);
+      }, pause);
+    }
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [charIndex, lineIndex, reducedMotion]);
+
+  const visibleLines = SCRIPT.slice(0, lineIndex);
+  const current = SCRIPT[lineIndex];
+
+  return (
+    <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
+        <span className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
+        <span className="ml-3 text-xs font-mono text-muted-foreground">interview.session</span>
+      </div>
+
+      <div className="p-5 font-mono text-sm leading-relaxed min-h-[240px] flex flex-col gap-2.5">
+        {visibleLines.map((line, i) => (
+          <TerminalLine key={i} line={line} />
+        ))}
+        {current && (
+          <TerminalLine line={current} partial={current.text.slice(0, charIndex)} />
+        )}
+
+        <AnimatePresence>
+          {showScore && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-2 flex items-center gap-2 pt-3 border-t border-border/30"
+            >
+              <Gauge className="w-3.5 h-3.5 text-primary" />
+              <span className="text-muted-foreground">follow-up fired in</span>
+              <span className="text-primary">0.4s</span>
+              <span className="text-muted-foreground">— vague-answer detected</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+const TerminalLine = ({ line, partial }: { line: Line; partial?: string }) => {
+  const text = partial ?? line.text;
+  const isTyping = partial !== undefined && partial.length < line.text.length;
+
+  if (line.speaker === "system") {
+    return <div className="text-muted-foreground/70">{text}</div>;
+  }
+
+  const label = line.speaker === "interviewer" ? "Interviewer" : "You";
+  const color = line.speaker === "interviewer" ? "text-primary" : "text-foreground";
+
+  return (
+    <div>
+      <span className={`font-semibold ${color}`}>{label}: </span>
+      <span className="text-foreground/90">{text}</span>
+      {isTyping && <span className="inline-block w-[2px] h-[1em] bg-primary align-middle ml-0.5 animate-pulse" />}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Scroll-reveal helpers
+// ---------------------------------------------------------------------------
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12 } },
+};
+
+const Reveal = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <motion.div
+    variants={fadeUp}
+    initial="hidden"
+    whileInView="show"
+    viewport={{ once: true, margin: "-80px" }}
+    className={className}
+  >
+    {children}
+  </motion.div>
+);
+
+// ---------------------------------------------------------------------------
+// Content
+// ---------------------------------------------------------------------------
+
+const STEPS = [
+  {
+    line: "01",
+    title: "Connect your GitHub",
+    description:
+      "We index your repos, commit history, and languages — not a resume upload, your actual work.",
+    icon: Github,
+  },
+  {
+    line: "02",
+    title: "Get interviewed on your own code",
+    description:
+      "Questions come from specific functions and decisions you shipped, so you can't memorize your way through.",
+    icon: GitCommitHorizontal,
+  },
+  {
+    line: "03",
+    title: "Answer, get pushed on it",
+    description:
+      "Vague answers get a follow-up, the way a real interviewer would dig in — not the next scripted question.",
+    icon: MessageSquareText,
+  },
+  {
+    line: "04",
+    title: "Review the transcript",
+    description:
+      "See exactly where you were sharp, where you rambled, and what to tighten before it counts.",
+    icon: Gauge,
+  },
+];
+
+const FEATURES = [
+  "Questions generated from your actual commits and file structure, not a static bank",
+  "Follow-ups that adapt to your last answer instead of running a fixed script",
+  "Scored on correctness, clarity, and how you communicate under pressure",
+  "Full transcript and replay, so you can see exactly where you lost the thread",
+  "Difficulty that climbs or eases based on your last three answers",
+  "Rerun the same repo as many times as it takes to stop fumbling the same question",
+];
+
+const STATS = [
+  { number: "22K+", label: "repos indexed" },
+  { number: "3.1", label: "follow-ups per question, on average" },
+  { number: "0.4s", label: "to catch a vague answer" },
+];
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export const Landingpage = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [scrollY, setScrollY] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const { scrollYProgress } = useScroll();
+  const navOpacity = useTransform(scrollYProgress, [0, 0.04], [0, 1]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-lg border-b border-border/20 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center font-bold">
-              AI
+    <div className="min-h-screen bg-background overflow-hidden">
+      {/* Nav */}
+      <nav className="fixed top-0 w-full border-b border-border/20 z-50">
+        <motion.div
+          style={{ opacity: navOpacity }}
+          className="absolute inset-0 bg-background/85 backdrop-blur-lg"
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-mono text-sm font-bold">
+              &gt;_
             </div>
-            <span className="font-bold text-xl text-foreground hidden sm:inline">InterviewAI</span>
+            <span className="font-mono font-semibold text-lg text-foreground hidden sm:inline">
+              InterviewAI
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">Docs</button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">Features</button>
+            <button className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
+              Docs
+            </button>
+            <button className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">
+              Features
+            </button>
             <button
               type="button"
               onClick={toggleTheme}
@@ -45,272 +272,257 @@ export const Landingpage = () => {
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Button size="sm" onClick={() => navigate("/information")}>Get Started</Button>
+            <Button size="sm" onClick={() => navigate("/information")}>
+              Get started
+            </Button>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto text-center space-y-8">
-          {/* Main Heading with Animation */}
-          <div
-            className={`space-y-4 transition-all duration-1000 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-            }`}
+      {/* Hero */}
+      <section className="relative pt-36 pb-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-14 items-center">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="show"
+            className="space-y-6"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">AI-Powered Interviews</span>
-            </div>
-
-            <h1 className="text-5xl sm:text-7xl font-bold leading-tight">
-              <span className="text-foreground">Master</span>{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-pulse">
-                Technical Interviews
+            <motion.div
+              variants={fadeUp}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono font-medium text-primary">
+                reads your repo before it asks a question
               </span>
-              <br />
-              <span className="text-muted-foreground text-4xl sm:text-5xl">with AI</span>
-            </h1>
+            </motion.div>
 
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Get personalized interview prep powered by your GitHub. Real-time feedback, adaptive difficulty, and interview-style questions tailored to your skills.
-            </p>
-          </div>
+            <motion.h1
+              variants={fadeUp}
+              className="text-4xl sm:text-6xl font-bold leading-[1.08] text-foreground"
+            >
+              Practice interviews on the{" "}
+              <span className="text-primary">code you actually wrote.</span>
+            </motion.h1>
 
-          {/* CTA Buttons */}
-          <div
-            className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-1000 delay-300 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-            }`}
+            <motion.p
+              variants={fadeUp}
+              className="text-lg text-muted-foreground leading-relaxed max-w-xl"
+            >
+              Connect GitHub and this interviewer builds every question from your real
+              repos — your architecture, your tradeoffs, the bug you papered over at
+              11pm. Answer out loud, get pushed on the weak spots, and see it all
+              scored the moment you're done.
+            </motion.p>
+
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/information")}>
+                Connect GitHub <ArrowRight className="w-4 h-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 text-base"
+                onClick={() => navigate("/interview")}
+              >
+                Watch a sample interview
+              </Button>
+            </motion.div>
+
+            <motion.p variants={fadeUp} className="text-xs text-muted-foreground/70 font-mono pt-1">
+              no resume required — your commit history is the resume
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="relative"
           >
-            <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/information")}>
-              Start Free <ArrowRight className="w-4 h-4" />
-            </Button>
-            
-          </div>
-
-          {/* Scroll Indicator */}
-          <div className="pt-8 animate-bounce">
-            <ChevronDown className="w-6 h-6 text-muted-foreground mx-auto" />
-          </div>
-        </div>
-
-        {/* Hero Image / Showcase */}
-        <div
-          className={`mt-20 transition-all duration-1000 delay-500 ${
-            isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
-          }`}
-          style={{ transform: `translateY(${scrollY * 0.1}px)` }}
-        >
-          <div className="relative max-w-4xl mx-auto">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur-2xl"></div>
-            <div className="relative bg-card border border-border/50 rounded-2xl p-8 backdrop-blur-sm">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { icon: Brain, label: "AI Analysis", desc: "GitHub analysis" },
-                  { icon: Target, label: "Personalized", desc: "Tailored questions" },
-                  { icon: Zap, label: "Real-time", desc: "Live feedback" },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="group p-4 rounded-lg hover:bg-primary/5 transition-all duration-300 hover:scale-105"
-                  >
-                    <item.icon className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-semibold text-foreground">{item.label}</h3>
-                    <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="absolute -inset-6 bg-primary/10 rounded-3xl blur-3xl" />
+            <div className="relative">
+              <InterviewTerminal />
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
+      {/* How it works */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-              How It Works
+          <Reveal className="max-w-2xl mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              Four steps, no question bank
             </h2>
             <p className="text-lg text-muted-foreground">
-              Four simple steps to ace your interview
+              Everything the interviewer asks traces back to something in your repo —
+              here's how it gets there.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {[
-              {
-                step: "01",
-                title: "Connect GitHub",
-                description: "Link your GitHub account and we'll analyze your projects, languages, and expertise.",
-                icon: Github,
-              },
-              {
-                step: "02",
-                title: "Get Insights",
-                description: "Our AI reviews your code quality, project complexity, and technical depth.",
-                icon: Brain,
-              },
-              {
-                step: "03",
-                title: "Custom Questions",
-                description: "Receive interview questions tailored to your skill level and experience.",
-                icon: Target,
-              },
-              {
-                step: "04",
-                title: "Real-time Feedback",
-                description: "Get instant feedback on your answers with suggestions for improvement.",
-                icon: Zap,
-              },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="group relative p-8 rounded-xl border border-border/50 hover:border-primary/50 bg-card hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-80px" }}
+            className="grid md:grid-cols-2 gap-6"
+          >
+            {STEPS.map((step) => (
+              <motion.div
+                key={step.line}
+                variants={fadeUp}
+                whileHover={{ y: -4 }}
+                className="group relative p-6 rounded-xl border border-border/50 bg-card/40 hover:border-primary/40 transition-colors"
               >
-                {/* Step Number */}
-                <div className="absolute top-4 right-4 text-4xl font-bold text-primary/20 group-hover:text-primary/40 transition-colors">
-                  {item.step}
+                <div className="flex items-start justify-between mb-4">
+                  <step.icon className="w-7 h-7 text-primary" />
+                  <span className="font-mono text-xs text-muted-foreground/60">
+                    // {step.line}
+                  </span>
                 </div>
-
-                {/* Icon */}
-                <item.icon className="w-10 h-10 text-primary mb-4 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300" />
-
-                {/* Content */}
-                <h3 className="text-xl font-bold text-foreground mb-2">{item.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{item.description}</p>
-
-                {/* Line */}
-                {index < 3 && (
-                  <div className="absolute -bottom-8 left-8 w-1 h-8 bg-gradient-to-b from-primary/50 to-transparent hidden md:block lg:hidden xl:block"></div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Highlight Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left Side - Features List */}
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-4xl font-bold text-foreground mb-4">
-                  Powerful Features
-                </h2>
-                <p className="text-lg text-muted-foreground">
-                  Everything you need to prepare for your dream job
+                <h3 className="text-lg font-bold text-foreground mb-2">{step.title}</h3>
+                <p className="text-muted-foreground leading-relaxed text-sm">
+                  {step.description}
                 </p>
-              </div>
-
-              <div className="space-y-4">
-                {[
-                  "Real-time code analysis from your GitHub",
-                  "Adaptive difficulty based on your level",
-                  "Instant AI-powered feedback and hints",
-                  "Track your progress and improvement",
-                  "Practice with unlimited questions",
-                  "Interview simulation mode",
-                ].map((feature, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                    </div>
-                    <span className="text-foreground font-medium">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Side - Visual */}
-            <div className="relative h-96 hidden md:block">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl blur-2xl"></div>
-              <div className="relative h-full bg-card border border-border/50 rounded-2xl p-8 space-y-4 overflow-hidden">
-                {/* Animated Terminal-like Display */}
-                <div className="space-y-2">
-                  <div className="h-2 bg-primary/30 rounded w-3/4 animate-pulse"></div>
-                  <div className="h-2 bg-primary/20 rounded w-1/2 animate-pulse" style={{ animationDelay: "0.2s" }}></div>
-                  <div className="h-2 bg-primary/30 rounded w-2/3 animate-pulse" style={{ animationDelay: "0.4s" }}></div>
-                </div>
-                <div className="pt-4 border-t border-border/30 space-y-2">
-                  <div className="h-2 bg-accent/30 rounded w-4/5 animate-pulse" style={{ animationDelay: "0.6s" }}></div>
-                  <div className="h-2 bg-accent/20 rounded w-3/5 animate-pulse" style={{ animationDelay: "0.8s" }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
+      {/* Feature list + annotated code visual */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-14 items-center">
+          <Reveal>
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              Built to feel like the real thing
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              Most prep tools quiz you on algorithms in a vacuum. This one interrogates
+              the decisions in your own commits.
+            </p>
+
+            <motion.ul
+              variants={stagger}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-80px" }}
+              className="space-y-3"
+            >
+              {FEATURES.map((feature) => (
+                <motion.li
+                  key={feature}
+                  variants={fadeUp}
+                  className="flex items-start gap-3 text-foreground/90"
+                >
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  <span className="leading-relaxed">{feature}</span>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </Reveal>
+
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="relative rounded-2xl border border-border/50 bg-card/60 p-6 font-mono text-sm"
+          >
+            <div className="text-muted-foreground/60 mb-1">limiter.go</div>
+            <div className="space-y-1 text-foreground/80">
+              <div><span className="text-muted-foreground/50">14</span>  <span className="text-primary">func</span> (l *Limiter) Allow(key string) bool {"{"}</div>
+              <div><span className="text-muted-foreground/50">15</span>    window := l.now().Truncate(l.interval)</div>
+              <div><span className="text-muted-foreground/50">16</span>    count := l.store.Incr(key + window.String())</div>
+              <div><span className="text-muted-foreground/50">17</span>    <span className="text-primary">return</span> count &lt;= l.limit</div>
+              <div><span className="text-muted-foreground/50">18</span>  {"}"}</div>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mt-4 flex gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20"
+            >
+              <MessageSquareText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              <p className="text-foreground/80 text-xs leading-relaxed">
+                Two requests landing right at the truncation boundary both read
+                count=0 before either writes. Is that the race you hit in prod?
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <Reveal className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-12">
-            <div className="grid md:grid-cols-3 gap-8 text-center">
-              {[
-                { number: "10K+", label: "Users Prepared" },
-                { number: "95%", label: "Success Rate" },
-                { number: "50ms", label: "Average Response" },
-              ].map((stat, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="border border-border/50 rounded-2xl p-10 sm:p-14">
+            <div className="grid sm:grid-cols-3 gap-10 text-center">
+              {STATS.map((stat) => (
+                <div key={stat.label}>
+                  <div className="text-4xl sm:text-5xl font-bold font-mono text-primary mb-2">
                     {stat.number}
                   </div>
-                  <p className="text-muted-foreground text-lg">{stat.label}</p>
+                  <p className="text-muted-foreground text-sm">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </section>
+      </Reveal>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">
-            Ready to ace your interview?
+      {/* CTA */}
+      <Reveal className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-5xl font-bold text-foreground mb-5">
+            Read the repo. Ask the hard question.
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of developers preparing for their dream jobs
+          <p className="text-lg text-muted-foreground mb-8">
+            Ten minutes with your own GitHub tells you more than another afternoon of
+            flashcards.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="h-12 text-base gap-2" onClick={() => navigate("/interview")}>
-              Start Now <ArrowRight className="w-4 h-4" />
+              Start your first interview <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button size="lg" variant="outline" className="h-12 text-base" onClick={() => navigate("/interview")}>
-              View Demo
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 text-base"
+              onClick={() => navigate("/interview")}
+            >
+              View a sample transcript
             </Button>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* Footer */}
-      <footer className="border-t border-border/20 bg-card/50 backdrop-blur py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-border/20 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="font-bold text-lg mb-4">InterviewAI</div>
-              <p className="text-sm text-muted-foreground">
-                AI-powered interview prep tailored to your GitHub profile
+              <div className="font-mono font-bold text-base mb-3 text-foreground">
+                InterviewAI
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                A technical interviewer that reads your GitHub before it writes a
+                single question.
               </p>
             </div>
             {[
               { title: "Product", links: ["Features", "Pricing", "FAQ"] },
               { title: "Company", links: ["About", "Blog", "Contact"] },
               { title: "Legal", links: ["Privacy", "Terms", "Security"] },
-            ].map((col, i) => (
-              <div key={i}>
-                <h4 className="font-semibold mb-4">{col.title}</h4>
+            ].map((col) => (
+              <div key={col.title}>
+                <h4 className="font-semibold mb-4 text-sm text-foreground">{col.title}</h4>
                 <ul className="space-y-2">
-                  {col.links.map((link, j) => (
-                    <li key={j}>
+                  {col.links.map((link) => (
+                    <li key={link}>
                       <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                         {link}
                       </a>
@@ -321,17 +533,11 @@ export const Landingpage = () => {
             ))}
           </div>
           <div className="border-t border-border/20 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
-            <p>&copy; 2024 InterviewAI. All rights reserved.</p>
+            <p>&copy; 2025 InterviewAI. All rights reserved.</p>
             <div className="flex gap-6 mt-4 sm:mt-0">
-              <a href="#" className="hover:text-foreground transition-colors">
-                Twitter
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                GitHub
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                LinkedIn
-              </a>
+              <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
+              <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+              <a href="#" className="hover:text-foreground transition-colors">LinkedIn</a>
             </div>
           </div>
         </div>

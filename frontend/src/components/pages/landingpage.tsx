@@ -324,7 +324,7 @@ export const Landingpage = () => {
                 size="lg"
                 variant="outline"
                 className="h-12 text-base"
-                onClick={() => navigate("/interview")}
+                onClick={() => navigate("/information")}
               >
                 Watch a sample interview
               </Button>

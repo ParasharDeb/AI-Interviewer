@@ -4,10 +4,12 @@ type InterviewSockettypes = {
   onClose?: (event: CloseEvent) => void;
   onError?: (event: Event) => void;
   InterviewID?:String
+  role?: String
 };
 export class InterviewSocket {
   public websocket:WebSocket|null
   public InterviewID:String|undefined
+  public role:String|undefined
   public onOpen?: () => void;
   public onMessage?: (event: MessageEvent) => void;
   public onClose?: (event: CloseEvent) => void;
@@ -15,6 +17,7 @@ export class InterviewSocket {
   constructor(config:InterviewSockettypes) {
     this.websocket = null;
     this.InterviewID=config.InterviewID;
+    this.role=config.role;
     this.onOpen = config.onOpen;
     this.onMessage = config.onMessage;
     this.onClose = config.onClose;
@@ -23,7 +26,7 @@ export class InterviewSocket {
 
   connect() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//localhost:5050?interviewId=${this.InterviewID}`;
+    const wsUrl = `${protocol}//localhost:5050?interviewId=${this.InterviewID}&role=${this.role || 'General'}`;
 
     this.websocket = new WebSocket(wsUrl);
     this.websocket.binaryType = "arraybuffer";

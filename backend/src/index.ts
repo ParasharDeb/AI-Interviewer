@@ -119,7 +119,8 @@ app.post("/github-verification", authMiddleware, async (req: AuthenticatedReques
             }
         })
         res.json({
-            "id":interview.id
+            "id":interview.id,
+            "role": data.role || "General"
         })
     } catch (error) {
         res.json({

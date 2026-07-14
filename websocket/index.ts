@@ -24,18 +24,17 @@ wss.on("connection", async (socket,req) => {
   console.log("Frontend connected");
   const url = new URL(req.url!, "http://localhost");
   const interviewId = url.searchParams.get("interviewId");
+  const role = url.searchParams.get("role") || "General";
   if(!interviewId){
     return
   }
-
-
   const githubmetadata=await prisma.interview.findFirst({
     where:{
       id:interviewId
     }
   })
   function InterviewMaker(){
-    const finalPrompt=`You are a senior level Backend developer at a software company. You need to take a backend interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}.The interview should end within 10 mins structure the questions like that.` 
+    const finalPrompt=`You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}.The interview should end within 10 mins structure the questions like that.` 
     return finalPrompt
   }
   const session = await ai.live.connect({

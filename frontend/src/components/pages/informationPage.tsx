@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/lib/theme-context";
 import { Sun, Moon, ArrowLeft } from "lucide-react";
 import { useState } from "react";
@@ -12,14 +13,34 @@ import { useNavigate } from "react-router-dom";
 import apiClient from "../../lib/apiClient";
 import { toast } from "sonner";
 import { SpinnerCustom } from "./loadercomponent";
+
+const INTERVIEW_ROLES = [
+  "Backend Engineer",
+  "Frontend Engineer",
+  "Full Stack Engineer",
+  "DevOps Engineer",
+  "Data Engineer",
+  "Mobile Engineer",
+  "QA Engineer",
+  "Product Manager",
+  "Solutions Architect",
+];
+
 export const InformationPage = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [github,setgithub]=useState<string>("")
+  const [role, setRole] = useState<string>("");
+  const [github, setgithub] = useState<string>("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   
   async function submitgithuburl(){
+    if (!role) {
+      toast.error("Role selection required", {
+        description: "Please select the role you're applying for.",
+      });
+      return;
+    }
     if (!github || github.trim() === "") {
       toast.error("GitHub URL is required", {
         description: "Please enter a valid GitHub URL to continue.",
@@ -30,11 +51,13 @@ export const InformationPage = () => {
     setLoading(true);
     try {
       const response = await apiClient.post(`/github-verification`, {
-        githuburl: github  
+        githuburl: github,
+        role: role
       });
       toast.success("GitHub profile loaded!", {
         description: "Starting your personalized interview...",
       });
+      localStorage.setItem("interviewRole", role);
       console.log(response);
       navigate(`/interview/${response.data.id}`)
     } catch (error: any) {
@@ -105,6 +128,27 @@ export const InformationPage = () => {
 
             {/* Form Section */}
             <div className="space-y-6">
+              <Field>
+                <FieldLabel htmlFor="role-select" className="text-base font-semibold">
+                  Role
+                </FieldLabel>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger id="role-select" className="h-11 text-base rounded-lg border-border/50 focus:border-primary focus:ring-primary/20">
+                    <SelectValue placeholder="Select the role you're applying for" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERVIEW_ROLES.map((roleOption) => (
+                      <SelectItem key={roleOption} value={roleOption}>
+                        {roleOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription className="text-xs text-muted-foreground">
+                  Select the role you're preparing for to personalize your interview.
+                </FieldDescription>
+              </Field>
+
               <Field>
                 <FieldLabel htmlFor="input-field-username" className="text-base font-semibold">
                   GitHub URL

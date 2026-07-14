@@ -59,6 +59,7 @@ useEffect(() => {
   const mediaHandler = new MediaHandler();
   const socket = new InterviewSocket({
     InterviewID:interviewId,
+    role: localStorage.getItem("interviewRole") || "General",
     onOpen: () => {
       console.log("Connected to backend");
     },

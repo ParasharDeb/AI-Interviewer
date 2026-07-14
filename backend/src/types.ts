@@ -2,6 +2,7 @@ import z, { email } from "zod";
  
 export const userdetails = z.object({
   githuburl: z.string(),
+  role: z.string().optional(),
 });
 export const Signupdetails=z.object({
   username:z.string(),

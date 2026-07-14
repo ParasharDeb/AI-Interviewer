@@ -17,6 +17,7 @@
   "dependencies": {
     "@google/genai": "^2.10.0",
     "@repo/db": "workspace:*",
+    "@repo/redis":"workspace:*",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.4.2",
     "ws": "^8.21.0"

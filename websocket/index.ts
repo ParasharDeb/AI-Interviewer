@@ -1,22 +1,24 @@
 import 'dotenv/config'
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { client } from '@repo/redis';
 import { prisma } from "@repo/db";
+interface InterviewType{
+  InterviewID:string,
+  Messages:Messagetype[]
+}
 interface Messagetype{
   Sender:"AI"|"CLIENT",
   Messages:string
 }
-
-
 const wss = new WebSocketServer({
   port: 5050,
 });
-
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
-
 wss.on("connection", async (socket,req) => {
+  
   const InterviewMessages:Messagetype[]=[]
   let aimessage=""
   console.log("Frontend connected");
@@ -25,15 +27,15 @@ wss.on("connection", async (socket,req) => {
   if(!interviewId){
     return
   }
+
+
   const githubmetadata=await prisma.interview.findFirst({
     where:{
       id:interviewId
     }
   })
-  console.log(interviewId);
-  console.log(githubmetadata)
   function InterviewMaker(){
-    const finalPrompt=`You are a senior level Backend developer at a software company. you need to take a backend interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}` 
+    const finalPrompt=`You are a senior level Backend developer at a software company. You need to take a backend interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}.The interview should end within 10 mins structure the questions like that.` 
     return finalPrompt
   }
   const session = await ai.live.connect({
@@ -48,7 +50,7 @@ wss.on("connection", async (socket,req) => {
         console.log("Gemini connected");
       },
 
-      onmessage(message) {
+      async onmessage(message) {
         const content = message.serverContent;
         if(!content) return
         if(content.inputTranscription?.text){
@@ -56,6 +58,13 @@ wss.on("connection", async (socket,req) => {
             Sender:"CLIENT",
             Messages:content.inputTranscription.text
           })
+          await client.rpush(
+  `interview:${interviewId}:messages`,
+  JSON.stringify({
+    sender: "CLIENT",
+    message: content.inputTranscription.text,
+  })
+);
           
         }
         if(content.outputTranscription?.text){
@@ -67,7 +76,15 @@ wss.on("connection", async (socket,req) => {
               Sender:'AI',
               Messages:aimessage
             })
-            aimessage=""
+            
+            await client.rpush(
+  `interview:${interviewId}:messages`,
+  JSON.stringify({
+    sender: "AI",
+    message: aimessage,
+  })
+);
+aimessage=""
           }
           socket.send(
             JSON.stringify({
@@ -111,7 +128,7 @@ if (content?.outputTranscription) {
 
   console.log("Gemini session started");
 
-  // Receive audio from browser
+
   socket.on("message", (data) => {
     const buffer = data as Buffer;
     

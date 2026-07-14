@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, User, Sun, Moon } from "lucide-react";
+import { Send, User, Sun, Moon, MessageCircle, X, Mic, MicOff, PhoneOff } from "lucide-react";
 import { MediaHandler } from "@/handlers/media-handler";
 import { InterviewSocket } from "@/handlers/interview-socket";
 import { useTheme } from "@/lib/theme-context";
@@ -23,6 +23,10 @@ export default function InterviewPage() {
     },
   ]);
   const [pendingAiMessage, setPendingAiMessage] = useState("");
+
+  // UI-only state (no business logic)
+  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isMicOn, setIsMicOn] = useState(true);
 
   const isDark = theme === "dark";
 
@@ -140,7 +144,7 @@ useEffect(() => {
   return (
     <div
       style={{ background: bg, color: textPrimary }}
-      className="min-h-screen p-4 sm:p-8 transition-colors duration-500"
+      className="h-screen w-screen overflow-hidden transition-colors duration-500"
     >
       <style>{`
         @keyframes blobMorph {
@@ -185,96 +189,85 @@ useEffect(() => {
         .dot {
           animation: dotBounce 1.2s infinite;
         }
+        .chat-panel {
+          transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+        .control-btn {
+          transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .control-btn:hover {
+          transform: translateY(-1px);
+        }
+        .control-btn:active {
+          transform: scale(0.94);
+        }
       `}</style>
 
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Interview</h1>
-            <p className="text-sm mt-1" style={{ color: textMuted }}>
-              Live mock session
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div
-              className="flex items-center gap-2 rounded-full px-4 py-2 text-sm"
-              style={{ background: panelAlt, border: `1px solid ${border}` }}
-            >
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-              </span>
-              Connected
+      <div className="flex h-full w-full">
+        {/* ============ Main stage ============ */}
+        <div className="relative flex-1 flex flex-col min-w-0">
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-6 sm:px-8 pt-6">
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight">Interview</h1>
+              <p className="text-xs mt-0.5" style={{ color: textMuted }}>
+                Live mock session
+              </p>
             </div>
 
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              className="flex items-center justify-center h-10 w-10 rounded-full transition-colors"
-              style={{ background: panelAlt, border: `1px solid ${border}` }}
-            >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Video Panels */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div
-            className="rounded-3xl p-4 transition-colors duration-500"
-            style={{ background: panel, border: `1px solid ${border}` }}
-          >
-            <h2
-              className="mb-3 text-xs font-semibold tracking-[0.15em] uppercase"
-              style={{ color: textMuted }}
-            >
-              You
-            </h2>
-
-            <div
-              className="aspect-video rounded-2xl flex items-center justify-center"
-              style={{
-                background: isDark
-                  ? "linear-gradient(135deg, #27272a, #0a0a0c)"
-                  : "linear-gradient(135deg, #e4e4e7, #f4f4f5)",
-              }}
-            >
-              <User size={72} style={{ color: textMuted }} />
-            </div>
-          </div>
-
-          <div
-            className="rounded-3xl p-4 transition-colors duration-500"
-            style={{ background: panel, border: `1px solid ${border}` }}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2
-                className="text-xs font-semibold tracking-[0.15em] uppercase"
-                style={{ color: textMuted }}
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs"
+                style={{ background: panelAlt, border: `1px solid ${border}` }}
               >
-                AI Interviewer
-              </h2>
-              <span className="text-xs" style={{ color: textMuted }}>
-                {aiState === "thinking" ? "thinking…" : aiState === "speaking" ? "speaking" : "listening"}
-              </span>
-            </div>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                Connected
+              </div>
 
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className="control-btn flex items-center justify-center h-9 w-9 rounded-full"
+                style={{ background: panelAlt, border: `1px solid ${border}` }}
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* AI stage */}
+          <div className="flex-1 flex items-center justify-center px-6 sm:px-8">
             <div
-              className="aspect-video rounded-2xl flex flex-col items-center justify-center gap-5 relative overflow-hidden"
+              className="relative w-full max-w-3xl aspect-[16/10] sm:aspect-video rounded-[2rem] flex flex-col items-center justify-center gap-6 overflow-hidden"
               style={{
                 background: isDark
                   ? "radial-gradient(circle at 50% 40%, #1c1c20, #08080a)"
                   : "radial-gradient(circle at 50% 40%, #ffffff, #e4e4e7)",
+                border: `1px solid ${border}`,
               }}
             >
+              <span
+                className="absolute top-5 left-6 text-xs font-medium tracking-[0.15em] uppercase"
+                style={{ color: textMuted }}
+              >
+                AI Interviewer
+              </span>
+              <span
+                className="absolute top-5 right-6 text-xs"
+                style={{ color: textMuted }}
+              >
+                {aiState === "thinking" ? "thinking…" : aiState === "speaking" ? "speaking" : "listening"}
+              </span>
+
               {/* outer glow */}
               <div
                 className={`blob-glow ${aiState === "speaking" ? "speaking" : ""} absolute rounded-full blur-2xl`}
                 style={{
-                  width: 150,
-                  height: 150,
+                  width: 190,
+                  height: 190,
                   background: isDark
                     ? "radial-gradient(circle, rgba(255,255,255,0.35), transparent 70%)"
                     : "radial-gradient(circle, rgba(24,24,27,0.25), transparent 70%)",
@@ -285,8 +278,8 @@ useEffect(() => {
               <div
                 className={`blob-shape ${aiState === "speaking" ? "speaking" : ""} relative`}
                 style={{
-                  width: 110,
-                  height: 110,
+                  width: 140,
+                  height: 140,
                   background: isDark
                     ? "linear-gradient(145deg, #f4f4f5, #52525b 55%, #18181b)"
                     : "linear-gradient(145deg, #3f3f46, #a1a1aa 55%, #e4e4e7)",
@@ -312,95 +305,165 @@ useEffect(() => {
                   />
                 ))}
               </div>
+
+              {/* self view - picture in picture */}
+              <div
+                className="absolute bottom-5 left-5 w-28 sm:w-36 aspect-video rounded-xl flex items-center justify-center overflow-hidden"
+                style={{
+                  background: isDark
+                    ? "linear-gradient(135deg, #27272a, #0a0a0c)"
+                    : "linear-gradient(135deg, #e4e4e7, #f4f4f5)",
+                  border: `1px solid ${border}`,
+                }}
+              >
+                <User size={28} style={{ color: textMuted }} />
+                <span
+                  className="absolute bottom-1.5 left-2 text-[10px] font-medium tracking-wide uppercase"
+                  style={{ color: textMuted }}
+                >
+                  You
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Bottom control bar */}
+          <div className="flex items-center justify-center gap-3 pb-8 pt-2">
+            <button
+              onClick={() => setIsMicOn((v) => !v)}
+              aria-label={isMicOn ? "Mute microphone" : "Unmute microphone"}
+              aria-pressed={!isMicOn}
+              className="control-btn flex items-center justify-center h-12 w-12 rounded-full"
+              style={{
+                background: isMicOn ? panelAlt : (isDark ? "#f4f4f5" : "#18181b"),
+                color: isMicOn ? textPrimary : (isDark ? "#18181b" : "#f4f4f5"),
+                border: `1px solid ${border}`,
+              }}
+            >
+              {isMicOn ? <Mic size={18} /> : <MicOff size={18} />}
+            </button>
+
+            <button
+              onClick={() => setIsChatOpen((v) => !v)}
+              aria-label={isChatOpen ? "Close chat" : "Open chat"}
+              aria-pressed={isChatOpen}
+              className="control-btn flex items-center justify-center h-12 w-12 rounded-full"
+              style={{
+                background: isChatOpen ? (isDark ? "#f4f4f5" : "#18181b") : panelAlt,
+                color: isChatOpen ? (isDark ? "#18181b" : "#f4f4f5") : textPrimary,
+                border: `1px solid ${border}`,
+              }}
+            >
+              {isChatOpen ? <X size={18} /> : <MessageCircle size={18} />}
+            </button>
+
+            <button
+              aria-label="End call"
+              className="control-btn flex items-center justify-center h-12 w-12 rounded-full"
+              style={{ background: "#ef4444", color: "#ffffff" }}
+            >
+              <PhoneOff size={18} />
+            </button>
           </div>
         </div>
 
-        {/* Chat */}
+        {/* ============ Chat panel ============ */}
         <div
-          className="rounded-3xl flex flex-col h-[500px] transition-colors duration-500"
-          style={{ background: panel, border: `1px solid ${border}` }}
+          className="chat-panel h-full flex-shrink-0 overflow-hidden"
+          style={{
+            width: isChatOpen ? "min(400px, 92vw)" : "0px",
+            opacity: isChatOpen ? 1 : 0,
+            borderLeft: isChatOpen ? `1px solid ${border}` : "none",
+            background: panel,
+          }}
         >
-          <div
-            className="p-5 text-xl font-semibold"
-            style={{ borderBottom: `1px solid ${border}` }}
-          >
-            Conversation
-          </div>
-
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className="max-w-xl rounded-2xl px-5 py-3 text-[15px] leading-relaxed"
-                  style={{
-                    background: msg.sender === "me" ? bubbleMe : bubbleAi,
-                    color: msg.sender === "me" ? bubbleMeText : bubbleAiText,
-                  }}
-                >
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-
-            {pendingAiMessage && (
-              <div className="flex justify-start">
-                <div
-                  className="max-w-xl rounded-2xl px-5 py-3 text-[15px] leading-relaxed"
-                  style={{ background: bubbleAi, color: bubbleAiText }}
-                >
-                  {pendingAiMessage}
-                </div>
-              </div>
-            )}
-
-            {aiState === "thinking" && (
-              <div className="flex justify-start">
-                <div
-                  className="rounded-2xl px-5 py-4 flex items-center gap-1.5"
-                  style={{ background: bubbleAi }}
-                >
-                  <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0s" }} />
-                  <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0.2s" }} />
-                  <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0.4s" }} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="p-5 flex gap-4" style={{ borderTop: `1px solid ${border}` }}>
-            <input
-              className="flex-1 rounded-xl px-5 py-3 outline-none transition-colors"
-              style={{
-                background: panelAlt,
-                color: textPrimary,
-                border: `1px solid ${border}`,
-              }}
-              placeholder="Type your message..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendMessage();
-              }}
-            />
-
-            <button
-              onClick={sendMessage}
-              aria-label="Send message"
-              className="rounded-xl px-6 flex items-center justify-center transition-transform active:scale-95"
-              style={{ background: isDark ? "#f4f4f5" : "#18181b", color: isDark ? "#18181b" : "#f4f4f5" }}
+          <div className="h-full w-[min(400px,92vw)] flex flex-col">
+            <div
+              className="p-5 flex items-center justify-between text-base font-semibold"
+              style={{ borderBottom: `1px solid ${border}` }}
             >
-              <Send size={20} />
-            </button>
+              Conversation
+              <button
+                onClick={() => setIsChatOpen(false)}
+                aria-label="Close chat"
+                className="control-btn flex items-center justify-center h-8 w-8 rounded-full"
+                style={{ background: panelAlt, border: `1px solid ${border}` }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
+                    style={{
+                      background: msg.sender === "me" ? bubbleMe : bubbleAi,
+                      color: msg.sender === "me" ? bubbleMeText : bubbleAiText,
+                    }}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+
+              {pendingAiMessage && (
+                <div className="flex justify-start">
+                  <div
+                    className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
+                    style={{ background: bubbleAi, color: bubbleAiText }}
+                  >
+                    {pendingAiMessage}
+                  </div>
+                </div>
+              )}
+
+              {aiState === "thinking" && (
+                <div className="flex justify-start">
+                  <div
+                    className="rounded-2xl px-4 py-3.5 flex items-center gap-1.5"
+                    style={{ background: bubbleAi }}
+                  >
+                    <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0s" }} />
+                    <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0.2s" }} />
+                    <span className="dot h-1.5 w-1.5 rounded-full" style={{ background: textMuted, animationDelay: "0.4s" }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 flex gap-3" style={{ borderTop: `1px solid ${border}` }}>
+              <input
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-colors"
+                style={{
+                  background: panelAlt,
+                  color: textPrimary,
+                  border: `1px solid ${border}`,
+                }}
+                placeholder="Type your message..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") sendMessage();
+                }}
+              />
+
+              <button
+                onClick={sendMessage}
+                aria-label="Send message"
+                className="control-btn rounded-xl px-4 flex items-center justify-center"
+                style={{ background: isDark ? "#f4f4f5" : "#18181b", color: isDark ? "#18181b" : "#f4f4f5" }}
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-

@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Landingpage } from "./components/pages/landingpage"
 import { InformationPage } from "./components/pages/informationPage"
 import { Toaster } from "sonner"
-import { SpinnerCustom } from "./components/pages/loadercomponent"
+import { Loader } from "./components/pages/loadercomponent"
 
 import { AuthPage } from "./components/pages/authPage"
 import InterviewPage from "./components/pages/Interviewpage"
@@ -24,7 +24,7 @@ export function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/loading-content" element={<SpinnerCustom />} />
+          <Route path="/loading-content" element={<Loader />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route
             path="/interview/:interviewId"

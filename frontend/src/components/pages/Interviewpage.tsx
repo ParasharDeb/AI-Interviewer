@@ -64,6 +64,14 @@ useEffect(() => {
     },
     onMessage: (event) => {
       const msg = JSON.parse(event.data);
+      if (msg.type === "Message list") {
+        const incomingMessages = msg.data || [];
+        const convertedMessages = incomingMessages.map((m: any) => ({
+          sender: m.Sender === "AI" ? "ai" : "me",
+          text: m.Messages
+        }));
+        setMessages(convertedMessages);
+      }
       if (msg.type === "transcript") {
         const transcript = msg.text?.trim();
         if (transcript) {

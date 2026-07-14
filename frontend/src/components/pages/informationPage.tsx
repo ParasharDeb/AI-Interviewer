@@ -9,8 +9,7 @@ import { useTheme } from "@/lib/theme-context";
 import { Sun, Moon, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { BACKEND_URL } from "@/lib/config";
+import apiClient from "../../lib/apiClient";
 import { toast } from "sonner";
 import { SpinnerCustom } from "./loadercomponent";
 export const InformationPage = () => {
@@ -30,7 +29,7 @@ export const InformationPage = () => {
     
     setLoading(true);
     try {
-      const response = await axios.post(`${BACKEND_URL}/github-verification`, {
+      const response = await apiClient.post(`/github-verification`, {
         githuburl: github  
       });
       toast.success("GitHub profile loaded!", {

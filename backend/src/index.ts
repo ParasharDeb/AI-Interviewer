@@ -6,6 +6,7 @@ import axios from "axios"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { JWT_SECRET } from "./config"
+import { authMiddleware, AuthenticatedRequest } from "./middleware"
 
 const app=express()
 app.use(express.json())
@@ -92,7 +93,7 @@ app.post("/signin",async(req,res)=>{
     }
 })
 
-app.post("/github-verification",async(req,res)=>{
+app.post("/github-verification", authMiddleware, async (req: AuthenticatedRequest, res) => {
     const {success,data}=userdetails.safeParse(req.body)
     if(!success){
         res.status(401).json({
@@ -110,15 +111,15 @@ app.post("/github-verification",async(req,res)=>{
         starcount:x.stargazers_count
     }))
     try {
-        const data= await prisma.interview.create({
+        const interview= await prisma.interview.create({
             data:{
                 githubmetadata:githubrepodetails,
                 status:'Inprocess',
-                userID:"686ce7d2-451b-435f-aaf3-4590bd8d6be6"
+                userID: req.userId!
             }
         })
         res.json({
-            "id":data.id
+            "id":interview.id
         })
     } catch (error) {
         res.json({
@@ -128,7 +129,7 @@ app.post("/github-verification",async(req,res)=>{
 
 })
 
-app.get("/interview/:id",async(req,res)=>{
+app.get("/interview/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
     const {id} = req.params
     if(!id){
         return

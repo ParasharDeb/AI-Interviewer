@@ -69,8 +69,7 @@ wss.on("connection", async (socket,req) => {
             })
             aimessage=""
           }
-        
-          console.log(InterviewMessages)
+
         if (content?.modelTurn?.parts) {
         for (const part of content.modelTurn.parts) {
         if (part.inlineData) {

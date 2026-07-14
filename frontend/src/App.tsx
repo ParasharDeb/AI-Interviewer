@@ -8,6 +8,7 @@ import { SpinnerCustom } from "./components/pages/loadercomponent"
 
 import { AuthPage } from "./components/pages/authPage"
 import InterviewPage from "./components/pages/Interviewpage"
+import { ProtectedRoute } from "./components/ProtectedRoute"
 
 export function App() {
   return (
@@ -15,10 +16,24 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landingpage />} />
-          <Route path="/information" element={<InformationPage />} />
+          <Route
+            path="/information"
+            element={
+              <ProtectedRoute>
+                <InformationPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/loading-content" element={<SpinnerCustom />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/interview/:interviewId" element={<InterviewPage/>}/>
+          <Route
+            path="/interview/:interviewId"
+            element={
+              <ProtectedRoute>
+                <InterviewPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
       <Toaster/>

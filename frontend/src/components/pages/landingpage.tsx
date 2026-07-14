@@ -45,7 +45,7 @@ export const Landingpage = () => {
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Button size="sm" onClick={() => navigate("/auth")}>Get Started</Button>
+            <Button size="sm" onClick={() => navigate("/information")}>Get Started</Button>
           </div>
         </div>
       </nav>
@@ -84,7 +84,7 @@ export const Landingpage = () => {
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
             }`}
           >
-            <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/auth")}>
+            <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/information")}>
               Start Free <ArrowRight className="w-4 h-4" />
             </Button>
             

@@ -2,6 +2,11 @@ import 'dotenv/config'
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { prisma } from "@repo/db";
+interface Messagetype{
+  Sender:"AI"|"CLIENT",
+  Messages:string
+}
+
 
 const wss = new WebSocketServer({
   port: 5050,
@@ -12,6 +17,8 @@ const ai = new GoogleGenAI({
 });
 
 wss.on("connection", async (socket,req) => {
+  const InterviewMessages:Messagetype[]=[]
+  let aimessage=""
   console.log("Frontend connected");
   const url = new URL(req.url!, "http://localhost");
   const interviewId = url.searchParams.get("interviewId");
@@ -43,6 +50,27 @@ wss.on("connection", async (socket,req) => {
 
       onmessage(message) {
         const content = message.serverContent;
+        if(!content) return
+        if(content.inputTranscription?.text){
+          InterviewMessages.push({
+            Sender:"CLIENT",
+            Messages:content.inputTranscription.text
+          })
+          
+        }
+        if(content.outputTranscription?.text){
+          aimessage=aimessage+content.outputTranscription.text 
+        }
+        if(content.turnComplete){
+          
+            InterviewMessages.push({
+              Sender:'AI',
+              Messages:aimessage
+            })
+            aimessage=""
+          }
+        
+          console.log(InterviewMessages)
         if (content?.modelTurn?.parts) {
         for (const part of content.modelTurn.parts) {
         if (part.inlineData) {
@@ -58,6 +86,7 @@ wss.on("connection", async (socket,req) => {
     }
 }
 if (content?.outputTranscription) {
+  
     socket.send(
         JSON.stringify({
             type: "transcript",
@@ -82,7 +111,7 @@ if (content?.outputTranscription) {
   // Receive audio from browser
   socket.on("message", (data) => {
     const buffer = data as Buffer;
-
+    
     session.sendRealtimeInput({
       audio: {
         data: buffer.toString("base64"),

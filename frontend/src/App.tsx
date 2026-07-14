@@ -5,8 +5,9 @@ import { Landingpage } from "./components/pages/landingpage"
 import { InformationPage } from "./components/pages/informationPage"
 import { Toaster } from "sonner"
 import { SpinnerCustom } from "./components/pages/loadercomponent"
-import InterviewPage from "./components/pages/InterviewPage"
+
 import { AuthPage } from "./components/pages/authPage"
+import InterviewPage from "./components/pages/Interviewpage"
 
 export function App() {
   return (

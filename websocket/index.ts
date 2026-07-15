@@ -56,10 +56,9 @@ wss.on("connection", async (socket,req) => {
         if(!content) return
         if (message.serverContent?.turnComplete && interviewEnded) {
            waitingForFinalGoodbye = true;
-    interviewEnded = false;
-        session.sendClientContent({
-             
-turns: [{
+            interviewEnded = false;
+        session.sendClientContent({  
+    turns: [{
             role: "user",
             parts: [{
                 text: "The interview time has ended. Thank the candidate politely and end the interview. Do not ask another question."
@@ -112,8 +111,20 @@ aimessage=""
           if (content.turnComplete && waitingForFinalGoodbye) {
     waitingForFinalGoodbye = false;
 
-    // Save transcript
-    // Save interview status
+    await prisma.messages.createMany({
+    data: InterviewMessages.map(msg => ({
+        interviewid: interviewId,
+        messages: msg.Messages,
+        type: msg.Sender === "AI"
+            ? "AIassistent"
+            : "User"
+    }))
+});
+await client.lpush(
+    "interview-rating-queue",
+    interviewId
+);
+//the redis db is being cleared at the worker. I think it is better no? idk if anyone is seeing this lmk
 
     socket.send(JSON.stringify({
         type: "Interview ended"

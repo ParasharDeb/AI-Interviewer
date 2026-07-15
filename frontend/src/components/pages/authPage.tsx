@@ -83,7 +83,7 @@ export const AuthPage = () => {
   const textMuted = isDark ? "#8b8b93" : "#71717a";
   const inverse = isDark ? "#18181b" : "#f4f4f5";
   const solid = isDark ? "#f4f4f5" : "#18181b";
-  const accent = isDark ? "#f2b134" : "#b9790f";
+  const accent = isDark ? "#fcfcfc" : "#d8d8d8";
   const accentSoft = isDark ? "rgba(242,177,52,0.16)" : "rgba(185,121,15,0.12)";
 
   return (

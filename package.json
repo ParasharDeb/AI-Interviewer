@@ -4,7 +4,7 @@
   "workspaces": [
     "backend",
     "frontend",
-    "db",
+    "pg-db",
     "websocket",
     "redis-db"
   ]

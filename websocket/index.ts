@@ -5,11 +5,12 @@ import { client } from '@repo/redis';
 import { prisma } from "@repo/db";
 interface InterviewType{
   InterviewID:string,
-  Messages:Messagetype[]
+  Messages:Messagetype[],
 }
 interface Messagetype{
   Sender:"AI"|"CLIENT",
-  Messages:string
+  Messages:string,
+  createdAt:Date
 }
 const wss = new WebSocketServer({
   port: 5050,
@@ -72,13 +73,15 @@ wss.on("connection", async (socket,req) => {
         if(content.inputTranscription?.text){
           InterviewMessages.push({
             Sender:"CLIENT",
-            Messages:content.inputTranscription.text
+            Messages:content.inputTranscription.text,
+            createdAt:new Date()
           })
           await client.rpush(
   `interview:${interviewId}:messages`,
   JSON.stringify({
     sender: "CLIENT",
     message: content.inputTranscription.text,
+    createdAt:new Date()
   })
 );
           
@@ -90,7 +93,8 @@ wss.on("connection", async (socket,req) => {
           
             InterviewMessages.push({
               Sender:'AI',
-              Messages:aimessage
+              Messages:aimessage,
+              createdAt:new Date()
             })
             
             await client.rpush(
@@ -98,6 +102,7 @@ wss.on("connection", async (socket,req) => {
   JSON.stringify({
     sender: "AI",
     message: aimessage,
+    createdAt:new Date()
   })
 );
 aimessage=""
@@ -115,6 +120,7 @@ aimessage=""
     data: InterviewMessages.map(msg => ({
         interviewid: interviewId,
         messages: msg.Messages,
+        sentAt:msg.createdAt,
         type: msg.Sender === "AI"
             ? "AIassistent"
             : "User"
@@ -183,7 +189,6 @@ if (content?.outputTranscription) {
   }
 
   const buffer = data as Buffer;
-
   session.sendRealtimeInput({
     audio: {
       data: buffer.toString("base64"),
@@ -191,12 +196,10 @@ if (content?.outputTranscription) {
     },
   });
 });
-
   socket.on("close", () => {
     console.log("Frontend disconnected");
     session.close();
   });
-
   socket.on("error", (err) => {
     console.error(err);
     session.close();

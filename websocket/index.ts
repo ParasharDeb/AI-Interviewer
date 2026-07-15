@@ -130,7 +130,8 @@ await client.lpush(
     "interview-rating-queue",
     interviewId
 );
-//the redis db is being cleared at the worker. I think it is better no? idk if anyone is seeing this lmk
+await client.del(`interview:${interviewId}:messages`);
+//maybe the redis db should be cleared by the worker. I think it is better no? idk if anyone is seeing this lmk
 
     socket.send(JSON.stringify({
         type: "Interview ended"

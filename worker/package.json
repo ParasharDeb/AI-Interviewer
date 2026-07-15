@@ -1,0 +1,22 @@
+{
+  "name": "worker",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "dev": "bun --watch index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "@repo/redis": "workspace:*",
+    "@repo/db": "workspace:*"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

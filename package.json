@@ -6,6 +6,7 @@
     "frontend",
     "pg-db",
     "websocket",
-    "redis-db"
+    "redis-db",
+    "worker"
   ]
 }

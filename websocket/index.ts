@@ -14,11 +14,13 @@ interface Messagetype{
 const wss = new WebSocketServer({
   port: 5050,
 });
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 wss.on("connection", async (socket,req) => {
-  
+  let interviewEnded=false;
+  let waitingForFinalGoodbye = false;
   const InterviewMessages:Messagetype[]=[]
   let aimessage=""
   console.log("Frontend connected");
@@ -34,7 +36,7 @@ wss.on("connection", async (socket,req) => {
     }
   })
   function InterviewMaker(){
-    const finalPrompt=`You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${githubmetadata}.The interview should end within 10 mins structure the questions like that.` 
+    const finalPrompt=`You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${JSON.stringify(githubmetadata)}.The interview should end within 10 mins structure the questions like that.` 
     return finalPrompt
   }
   const session = await ai.live.connect({
@@ -52,6 +54,22 @@ wss.on("connection", async (socket,req) => {
       async onmessage(message) {
         const content = message.serverContent;
         if(!content) return
+        if (message.serverContent?.turnComplete && interviewEnded) {
+           waitingForFinalGoodbye = true;
+    interviewEnded = false;
+        session.sendClientContent({
+             
+turns: [{
+            role: "user",
+            parts: [{
+                text: "The interview time has ended. Thank the candidate politely and end the interview. Do not ask another question."
+            }]
+        }],
+        turnComplete: true
+
+        });
+        return
+    }
         if(content.inputTranscription?.text){
           InterviewMessages.push({
             Sender:"CLIENT",
@@ -85,11 +103,25 @@ wss.on("connection", async (socket,req) => {
 );
 aimessage=""
           }
+
           socket.send(
             JSON.stringify({
             type:"Message list",
             data:InterviewMessages
           }))
+          if (content.turnComplete && waitingForFinalGoodbye) {
+    waitingForFinalGoodbye = false;
+
+    // Save transcript
+    // Save interview status
+
+    socket.send(JSON.stringify({
+        type: "Interview ended"
+    }));
+
+    session.close();
+    socket.close();
+}
         if (content?.modelTurn?.parts) {
         for (const part of content.modelTurn.parts) {
         if (part.inlineData) {
@@ -126,19 +158,28 @@ if (content?.outputTranscription) {
   });
 
   console.log("Gemini session started");
+  socket.on("message", (data, isBinary) => {
 
+  if (!isBinary) {
+    const msg = JSON.parse(data.toString());
 
-  socket.on("message", (data) => {
-    const buffer = data as Buffer;
-    
-    session.sendRealtimeInput({
-      audio: {
-        data: buffer.toString("base64"),
-        mimeType: "audio/pcm;rate=16000",
-      },
-    });
+    if (msg.type === "End Call") {
+      interviewEnded = true;
+      return;
+    }
 
+    return;
+  }
+
+  const buffer = data as Buffer;
+
+  session.sendRealtimeInput({
+    audio: {
+      data: buffer.toString("base64"),
+      mimeType: "audio/pcm;rate=16000",
+    },
   });
+});
 
   socket.on("close", () => {
     console.log("Frontend disconnected");

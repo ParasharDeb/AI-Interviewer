@@ -3,7 +3,7 @@ import { Send, User, Sun, Moon, MessageCircle, X, Mic, MicOff, PhoneOff } from "
 import { MediaHandler } from "@/handlers/media-handler";
 import { InterviewSocket } from "@/handlers/interview-socket";
 import { useTheme } from "@/lib/theme-context";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 type Message = {
   sender: "me" | "ai";
   text: string;
@@ -23,7 +23,7 @@ export default function InterviewPage() {
     },
   ]);
   const [pendingAiMessage, setPendingAiMessage] = useState("");
-
+  const navigate=useNavigate()
   // UI-only state (no business logic)
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -59,6 +59,13 @@ export default function InterviewPage() {
 
     return bytes.buffer;
 }
+function Endcall(){
+    socketRef.current?.send(
+  JSON.stringify({
+    type: "End Call",
+  })
+);
+  }
 useEffect(() => {
   const mediaHandler = new MediaHandler();
   const socket = new InterviewSocket({
@@ -84,9 +91,13 @@ useEffect(() => {
           setAiState("speaking");
         }
       }
+
       if (msg.type === "audio") {
         const arrayBuffer = base64ToArrayBuffer(msg.data);
         mediaHandler.playAudio(arrayBuffer);
+      }
+      if(msg.type=="Interview ended"){
+        navigate("/information")
       }
     },
     onClose: () => {
@@ -105,7 +116,7 @@ useEffect(() => {
       socket.sendAudio(pcm);
     });
   }
-
+  
   init();
   return () => {
     mediaHandler.stopAudio();
@@ -129,7 +140,7 @@ useEffect(() => {
 
   return () => window.clearTimeout(timeout);
 }, [pendingAiMessage]);
-
+  
   const bg = isDark ? "#0a0a0c" : "#eceeef";
   const panel = isDark ? "#131316" : "#ffffff";
   const panelAlt = isDark ? "#18181b" : "#f4f4f5";
@@ -359,6 +370,7 @@ useEffect(() => {
 
             <button
               aria-label="End call"
+              onClick={Endcall}
               className="control-btn flex items-center justify-center h-12 w-12 rounded-full"
               style={{ background: "#ef4444", color: "#ffffff" }}
             >

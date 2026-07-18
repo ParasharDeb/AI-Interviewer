@@ -272,7 +272,7 @@ export const Landingpage = () => {
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <Button size="sm" onClick={() => navigate("/information")}>
+            <Button size="sm" onClick={() => navigate("/about")}>
               Get started
             </Button>
           </div>
@@ -317,14 +317,14 @@ export const Landingpage = () => {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/information")}>
+              <Button size="lg" className="gap-2 text-base h-12" onClick={() => navigate("/about")}>
                 Connect GitHub <ArrowRight className="w-4 h-4" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="h-12 text-base"
-                onClick={() => navigate("/information")}
+                onClick={() => navigate("/about")}
               >
                 Watch a sample interview
               </Button>

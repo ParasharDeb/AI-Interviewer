@@ -10,6 +10,7 @@ import { AuthPage } from "./components/pages/authPage"
 import InterviewPage from "./components/pages/Interviewpage"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import PaymentPage from "./components/pages/payment"
+import AboutPage from "./components/pages/about"
 
 export function App() {
   return (
@@ -33,6 +34,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <PaymentPage/>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <ProtectedRoute>
+                <AboutPage/>
               </ProtectedRoute>
             }
           />

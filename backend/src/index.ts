@@ -130,6 +130,147 @@ app.post("/github-verification", authMiddleware, async (req: AuthenticatedReques
 
 })
 
+app.get("/users", authMiddleware, async (_req, res) => {
+    try {
+        const users = await prisma.User.findMany({
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                tokens: true
+            },
+            orderBy: {
+                username: "asc"
+            }
+        })
+        return res.json(users)
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch users" })
+    }
+})
+
+app.get("/users/:id", authMiddleware, async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const user = await prisma.User.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                tokens: true
+            }
+        })
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        return res.json(user)
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch user" })
+    }
+})
+
+app.get("/user/tokens", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+        const user = await prisma.User.findUnique({
+            where: { id: req.userId! },
+            select: { tokens: true }
+        })
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        const totalTokens = user.tokens || 0
+        return res.json({
+            totalTokens,
+            usedTokens: 0,
+            remainingTokens: totalTokens
+        })
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch token usage" })
+    }
+})
+
+app.get("/user/interviews", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+        const interviews = await prisma.interview.findMany({
+            where: { userID: req.userId! },
+            orderBy: { id: "desc" },
+            include: {
+                _count: {
+                    select: { messages: true }
+                }
+            }
+        })
+
+        return res.json(interviews.map((interview: any) => ({
+            id: interview.id,
+            role: interview.githubmetadata?.[0]?.name || "General",
+            createdAt: new Date().toISOString(),
+            messageCount: interview._count.messages,
+            status: interview.status,
+            score: interview.score,
+            feedback: interview.feedback
+        })))
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch interviews" })
+    }
+})
+
+app.get("/users/:id/interviews", authMiddleware, async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const interviews = await prisma.interview.findMany({
+            where: { userID: id },
+            orderBy: { id: "desc" },
+            include: {
+                _count: {
+                    select: { messages: true }
+                }
+            }
+        })
+
+        return res.json(interviews.map((interview: any) => ({
+            id: interview.id,
+            role: interview.githubmetadata?.[0]?.name || "General",
+            createdAt: new Date().toISOString(),
+            messageCount: interview._count.messages,
+            status: interview.status,
+            score: interview.score,
+            feedback: interview.feedback
+        })))
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch user interviews" })
+    }
+})
+
+app.get("/interview/:id/messages", authMiddleware, async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const messages = await prisma.Messages.findMany({
+            where: { interviewid: id },
+            orderBy: { sentAt: "asc" }
+        })
+
+        return res.json({
+            messages: messages.map((message: any) => ({
+                id: message.id,
+                text: message.messages,
+                sender: message.type === "AIassistent" ? "ai" : "me",
+                createdAt: message.sentAt.toISOString()
+            }))
+        })
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch interview messages" })
+    }
+})
+
 app.get("/interview/:id", authMiddleware, async (req: AuthenticatedRequest, res) => {
     const {id} = req.params
     if(!id){

@@ -118,6 +118,7 @@ useEffect(() => {
   }
   
   init();
+  
   return () => {
     mediaHandler.stopAudio();
     socket.disconnect();

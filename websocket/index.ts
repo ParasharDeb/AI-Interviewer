@@ -37,7 +37,7 @@ wss.on("connection", async (socket,req) => {
     }
   })
   function InterviewMaker(){
-    const finalPrompt=`You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${JSON.stringify(githubmetadata)}.The interview should end within 10 mins structure the questions like that.` 
+    const finalPrompt=`You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. The user's githubdata ${JSON.stringify(githubmetadata)}` 
     return finalPrompt
   }
   const session = await ai.live.connect({

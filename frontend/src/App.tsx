@@ -9,6 +9,7 @@ import { Loader } from "./components/pages/loadercomponent"
 import { AuthPage } from "./components/pages/authPage"
 import InterviewPage from "./components/pages/Interviewpage"
 import { ProtectedRoute } from "./components/ProtectedRoute"
+import PaymentPage from "./components/pages/payment"
 
 export function App() {
   return (
@@ -26,6 +27,15 @@ export function App() {
           />
           <Route path="/loading-content" element={<Loader />} />
           <Route path="/auth" element={<AuthPage />} />
+          
+          <Route
+            path="/payment"
+            element={
+              <ProtectedRoute>
+                <PaymentPage/>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/interview/:interviewId"
             element={

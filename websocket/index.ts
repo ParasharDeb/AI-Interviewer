@@ -15,7 +15,6 @@ interface Messagetype{
 const wss = new WebSocketServer({
   port: 5050,
 });
-
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
@@ -126,13 +125,16 @@ aimessage=""
             : "User"
     }))
 });
-await client.lpush(
+try {
+  await client.rpush(
     "interview-rating-queue",
     interviewId
-);
+  );
+  console.log("pushed interview ID to queue", interviewId)
+} catch (error) {
+  console.log(error)
+}
 await client.del(`interview:${interviewId}:messages`);
-//maybe the redis db should be cleared by the worker. I think it is better no? idk if anyone is seeing this lmk
-
     socket.send(JSON.stringify({
         type: "Interview ended"
     }));

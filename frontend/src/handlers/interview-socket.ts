@@ -1,3 +1,5 @@
+import { buildInterviewWebSocketUrl } from "@/lib/config";
+
 type InterviewSockettypes = {
   onOpen?: () => void;
   onMessage?: (event: MessageEvent) => void;
@@ -25,8 +27,10 @@ export class InterviewSocket {
   }
 
   connect() {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//localhost:5050?interviewId=${this.InterviewID}&role=${this.role || 'General'}`;
+    const wsUrl = buildInterviewWebSocketUrl(
+      String(this.InterviewID ?? ""),
+      String(this.role || "General")
+    );
 
     this.websocket = new WebSocket(wsUrl);
     this.websocket.binaryType = "arraybuffer";

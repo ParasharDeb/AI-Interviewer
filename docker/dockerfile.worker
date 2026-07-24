@@ -1,0 +1,30 @@
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Root workspace files
+COPY package.json bun.lock ./
+
+# Workspace manifests
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
+COPY websocket/package.json ./websocket/
+COPY worker/package.json ./worker/
+COPY pg-db/package.json ./pg-db/
+COPY redis-db/package.json ./redis-db/
+
+# Install dependencies
+RUN bun install
+
+# Copy only what the worker needs
+COPY worker ./worker
+COPY pg-db ./pg-db
+COPY redis-db ./redis-db
+
+# Generate Prisma Client
+RUN bunx prisma generate --schema=pg-db/prisma/schema.prisma
+
+# Run the worker
+WORKDIR /app/worker
+
+CMD ["bun", "run", "start"]

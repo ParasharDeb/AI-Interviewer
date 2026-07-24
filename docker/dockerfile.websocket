@@ -1,0 +1,26 @@
+FROM oven/bun:1
+
+WORKDIR /app
+
+COPY package.json bun.lock ./
+
+COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
+COPY websocket/package.json ./websocket/
+COPY worker/package.json ./worker/
+COPY pg-db/package.json ./pg-db/
+COPY redis-db/package.json ./redis-db/
+
+RUN bun install
+
+COPY websocket ./websocket
+COPY pg-db ./pg-db
+COPY redis-db ./redis-db
+
+RUN bunx prisma generate --schema=pg-db/prisma/schema.prisma
+
+WORKDIR /app/websocket
+
+EXPOSE 5050
+
+CMD ["bun", "run", "start"]

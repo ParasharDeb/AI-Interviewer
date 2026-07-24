@@ -1,0 +1,26 @@
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Root workspace files
+COPY package.json bun.lock ./
+
+# Workspace package manifests
+COPY backend/package.json ./backend/
+COPY pg-db/package.json ./pg-db/
+COPY redis-db/package.json ./redis-db/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy only the code needed by the backend
+COPY backend ./backend
+COPY pg-db ./pg-db
+COPY redis-db ./redis-db
+
+# Generate Prisma Client (if your schema is in pg-db/prisma)
+RUN bunx prisma generate --schema=pg-db/prisma/schema.prisma
+
+EXPOSE 8080
+
+CMD ["bun", "--cwd", "backend", "run", "start"]

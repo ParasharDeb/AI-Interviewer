@@ -1,7 +1,7 @@
 import "dotenv/config"
 import { client } from "@repo/redis";
 import { GoogleGenAI } from "@google/genai";
-import {prisma} from "@repo/db"
+import {prisma} from "@repo/db"    
 async function rating_Interview(){
   const result = await client.brpop(
         "interview-rating-queue",

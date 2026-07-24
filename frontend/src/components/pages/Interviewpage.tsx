@@ -11,8 +11,10 @@ type Message = {
 type AiState = "idle" | "thinking" | "speaking";
 export default function InterviewPage() {
   const {interviewId}=useParams()
+  const timeref=useRef<number|null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<InterviewSocket | null>(null);
+  const endRequestedRef = useRef(false);
   const [input, setInput] = useState("");
   const [aiState, setAiState] = useState<AiState>("idle");
   const { theme, toggleTheme } = useTheme();
@@ -34,7 +36,7 @@ export default function InterviewPage() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, aiState]);
-
+  //for ui 
   function sendMessage() {
     const text = input.trim();
     if (!text) return;
@@ -56,16 +58,22 @@ export default function InterviewPage() {
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
-
     return bytes.buffer;
 }
 function Endcall(){
-    socketRef.current?.send(
+  if (endRequestedRef.current) return;
+  endRequestedRef.current = true;
+  if(timeref.current){
+    clearTimeout(timeref.current)
+  }
+  socketRef.current?.send(
   JSON.stringify({
     type: "End Call",
   })
 );
   }
+
+
 useEffect(() => {
   const mediaHandler = new MediaHandler();
   const socket = new InterviewSocket({
@@ -97,7 +105,7 @@ useEffect(() => {
         mediaHandler.playAudio(arrayBuffer);
       }
       if(msg.type=="Interview ended"){
-        navigate("/information")
+        navigate("/about")
       }
     },
     onClose: () => {
@@ -107,10 +115,11 @@ useEffect(() => {
       console.error(err);
     },
   });
-
   socketRef.current = socket;
   socket.connect();
-
+  timeref.current = window.setTimeout(()=>{
+  Endcall()
+},300000)
   async function init() {
     await mediaHandler.startAudio((pcm: any) => {
       socket.sendAudio(pcm);
@@ -120,6 +129,10 @@ useEffect(() => {
   init();
   
   return () => {
+    if(timeref.current) {
+      clearTimeout(timeref.current)
+      timeref.current=null
+    }
     mediaHandler.stopAudio();
     socket.disconnect();
   };

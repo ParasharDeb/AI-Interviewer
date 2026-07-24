@@ -18,7 +18,8 @@ COPY pg-db ./pg-db
 COPY redis-db ./redis-db
 
 RUN bunx prisma generate --schema=pg-db/prisma/schema.prisma
+WORKDIR /app/backend
 
 EXPOSE 8080
 
-CMD ["bun", "--cwd", "backend", "run", "start"]
+CMD ["bun", "run", "start"]

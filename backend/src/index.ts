@@ -293,5 +293,8 @@ app.get("/interview/:id", authMiddleware, async (req: AuthenticatedRequest, res)
 
     
 })
+const PORT = process.env.PORT || 8080;
 
-app.listen(8080)
+app.listen(PORT, () => {
+  console.log(`Backend listening on ${PORT}`);
+});

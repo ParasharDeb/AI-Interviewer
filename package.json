@@ -1,12 +1,20 @@
 {
-  "name": "mycore",
-  "private": true,
-  "workspaces": [
+  "name":"mycore",
+  "private":true,
+
+  "workspaces":[
     "backend",
     "frontend",
     "pg-db",
-    "websocket",
     "redis-db",
-    "worker"
-  ]
+    "worker",
+    "websocket"
+  ],
+
+  "scripts":{
+    "backend":"bun --cwd backend run dev",
+    "frontend":"bun --cwd frontend run dev",
+    "worker":"bun --cwd worker run dev",
+    "websocket":"bun --cwd websocket run dev"
+  }
 }

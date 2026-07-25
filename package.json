@@ -4,7 +4,6 @@
 
   "workspaces":[
     "backend",
-    "frontend",
     "pg-db",
     "redis-db",
     "worker",

@@ -7,7 +7,6 @@ COPY package.json bun.lock ./
 
 # Workspace manifests
 COPY backend/package.json ./backend/
-COPY frontend/package.json ./frontend/
 COPY websocket/package.json ./websocket/
 COPY worker/package.json ./worker/
 COPY pg-db/package.json ./pg-db/

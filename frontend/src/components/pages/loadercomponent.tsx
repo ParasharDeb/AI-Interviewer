@@ -1,4 +1,4 @@
-import { useTheme } from "@/lib/theme-context";
+import { useTheme } from "../../lib/theme-context";
 
 const steps = [
   { label: "Fetching repositories", delay: "0s" },

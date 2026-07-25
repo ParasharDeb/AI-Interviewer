@@ -5,8 +5,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { useTheme } from "@/lib/theme-context";
-import { BACKEND_URL } from "@/lib/config";
+import { useTheme } from "../../lib/theme-context";
+import { BACKEND_URL } from "../../lib/config";
 
 type AuthMode = "signin" | "signup";
 

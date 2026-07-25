@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme } from "../../lib/theme-context";
 
 type ConnectingOverlayProps = {
   /** Controls visibility. Pass `true` while the socket is connecting, `false` once ready. */

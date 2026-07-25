@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Moon, Sun, Zap, MessageSquare, Clock, Loader2, ChevronRight, Play } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "@/lib/theme-context";
-import { BACKEND_URL } from "@/lib/config";
+import { useTheme } from "../../lib/theme-context";
+import { BACKEND_URL } from "../../lib/config";
 
 type TokenUsage = {
   totalTokens: number;

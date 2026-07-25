@@ -2,11 +2,11 @@ import {
   Field,
   FieldDescription,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTheme } from "@/lib/theme-context";
+} from "../../components/ui/field"
+import { Input } from "../../components/ui/input"
+import { Button } from "../../components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { useTheme } from "../../lib/theme-context";
 import { Sun, Moon, ArrowLeft, Check } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

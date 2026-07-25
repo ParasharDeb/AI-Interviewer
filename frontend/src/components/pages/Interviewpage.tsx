@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sun, Moon, MessageCircle, X, Mic, MicOff, PhoneOff } from "lucide-react";
-import { MediaHandler } from "@/handlers/media-handler";
-import { InterviewSocket } from "@/handlers/interview-socket";
-import { useTheme } from "@/lib/theme-context";
+import { MediaHandler } from "../../handlers/media-handler";
+import { InterviewSocket } from "../../handlers/interview-socket";
+import { useTheme } from "../../lib/theme-context";
 import { useNavigate, useParams } from "react-router-dom";
 type Message = {
   sender: "me" | "ai";

@@ -1,4 +1,4 @@
-import "styles/globals.css"
+
 import { ThemeProvider } from "./lib/theme-context"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { Landingpage } from "./components/pages/landingpage"

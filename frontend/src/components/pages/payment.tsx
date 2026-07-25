@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Moon, Sun, Check, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "@/lib/theme-context";
+import { useTheme } from "../../lib/theme-context";
 
 type PlanId = "starter" | "pro" | "max";
 

@@ -1,4 +1,4 @@
-import { buildInterviewWebSocketUrl } from "@/lib/config";
+import { buildInterviewWebSocketUrl } from "../lib/config";
 
 type InterviewSockettypes = {
   onOpen?: () => void;

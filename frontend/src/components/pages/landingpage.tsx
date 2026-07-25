@@ -17,8 +17,8 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/lib/theme-context";
+import { Button } from "../../components/ui/button";
+import { useTheme } from "../../lib/theme-context";
 
 // ---------------------------------------------------------------------------
 // Signature element: a looping mock interview transcript. It types itself
@@ -61,7 +61,7 @@ const InterviewTerminal = () => {
   const [lineIndex, setLineIndex] = useState(reducedMotion ? SCRIPT.length : 0);
   const [charIndex, setCharIndex] = useState(reducedMotion ? SCRIPT[SCRIPT.length - 1].text.length : 0);
   const [showScore, setShowScore] = useState(reducedMotion);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
 
   useEffect(() => {
     if (reducedMotion) return;

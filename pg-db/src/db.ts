@@ -8,3 +8,6 @@ const adapter = new PrismaPg({
 export const prisma = new PrismaClient({
   adapter,
 });
+
+// Credits charged when an interview moves from Pre to Inprocess.
+export const INTERVIEW_CREDIT_COST = 1;

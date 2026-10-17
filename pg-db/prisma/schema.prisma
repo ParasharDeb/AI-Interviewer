@@ -20,6 +20,9 @@ model Interview{
   status            InterviewStatus
   score             Int         @default(0)
   feedback          String      @default("")
+  createdAt         DateTime    @default(now())
+  // Set when the interview moves Pre -> Inprocess, which is also when the credit is charged.
+  startedAt         DateTime?
   messages          Messages[]
   userID            String      
   User              User        @relation(fields: [userID],references: [id])

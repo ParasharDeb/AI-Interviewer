@@ -1,19 +1,30 @@
 import 'dotenv/config'
 import http from "http";
-import { WebSocketServer } from "ws";
-import { GoogleGenAI, Modality } from "@google/genai";
+import { randomUUID } from "crypto";
+import { WebSocketServer, type WebSocket } from "ws";
+import { GoogleGenAI, Modality, type Session } from "@google/genai";
 import { client } from '@repo/redis';
 import { prisma } from "@repo/db";
+import {
+  Rejections,
+  SESSION_LOCK_TTL_MS,
+  acquireSessionLock,
+  claimInterview,
+  loadSavedMessages,
+  markInterviewEnding,
+  messagesKey,
+  refundUnstartedInterview,
+  releaseSessionLock,
+  renewSessionLock,
+  verifyToken,
+  type ClaimResult,
+  type Messagetype,
+  type Rejection
+} from "./interview-lifecycle";
 
 interface InterviewType {
   InterviewID: string,
   Messages: Messagetype[],
-}
-
-interface Messagetype {
-  Sender: "AI" | "CLIENT",
-  Messages: string,
-  createdAt: Date
 }
 
 type InterviewLifecycle =
@@ -25,6 +36,9 @@ type InterviewLifecycle =
 
 const GOODBYE_PROMPT =
   "The interview time has ended. Thank the candidate politely and end the interview. Do not ask another question.";
+
+const RESUME_PROMPT =
+  "The candidate has reconnected after a disconnection. Briefly welcome them back and continue the interview from where it stopped.";
 
 const GOODBYE_PLAYING_TIMEOUT_MS = 30_000;
 const GOODBYE_PENDING_TIMEOUT_MS = 90_000;
@@ -83,6 +97,17 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
+function rejectConnection(socket: WebSocket, rejection: Rejection) {
+  if (socket.readyState === socket.OPEN) {
+    socket.send(JSON.stringify({
+      type: "error",
+      error: rejection.error,
+      message: rejection.message
+    }));
+    socket.close(rejection.code, rejection.error);
+  }
+}
+
 wss.on("connection", async (socket, req) => {
   let lifecycle: InterviewLifecycle = "Running";
   let goodbyeSent = false;
@@ -99,24 +124,106 @@ wss.on("connection", async (socket, req) => {
   const interviewIdParam = url.searchParams.get("interviewId");
   const role = url.searchParams.get("role") || "General";
 
+  let clientGone = false;
+  socket.once("close", () => {
+    clientGone = true;
+  });
+
   if (!interviewIdParam) {
+    rejectConnection(socket, Rejections.NotFound);
     return;
   }
 
   const interviewId = interviewIdParam;
 
-  const githubmetadata = await prisma.interview.findUnique({
-    where: {
-      id: interviewId
+  // Browsers cannot set headers on a websocket, so the JWT comes in the query string.
+  const userId = verifyToken(url.searchParams.get("token"));
+  if (!userId) {
+    rejectConnection(socket, Rejections.Unauthorized);
+    return;
+  }
+
+  const connectionId = randomUUID();
+  let claim: ClaimResult;
+  try {
+    if (!(await acquireSessionLock(interviewId, connectionId))) {
+      rejectConnection(socket, Rejections.AlreadyActive);
+      return;
     }
-  });
+  } catch (error) {
+    console.error("Failed to acquire interview session lock", interviewId, error);
+    rejectConnection(socket, Rejections.StartFailed);
+    return;
+  }
+
+  const lockHeartbeat = setInterval(() => {
+    renewSessionLock(interviewId, connectionId).catch(console.error);
+  }, SESSION_LOCK_TTL_MS / 3);
+  const releaseLock = () => {
+    clearInterval(lockHeartbeat);
+    releaseSessionLock(interviewId, connectionId).catch(console.error);
+  };
+  if (clientGone) {
+    releaseLock();
+    return;
+  }
+  socket.once("close", releaseLock);
+
+  try {
+    claim = await claimInterview(interviewId, userId);
+  } catch (error) {
+    console.error("Failed to start interview", interviewId, error);
+    rejectConnection(socket, Rejections.StartFailed);
+    return;
+  }
+
+  if (!claim.ok) {
+    rejectConnection(socket, claim.rejection);
+    return;
+  }
+
+  const charged = claim.charged;
+  async function refundIfCharged() {
+    if (!charged) {
+      return;
+    }
+    try {
+      await refundUnstartedInterview(interviewId, userId!);
+    } catch (error) {
+      console.error("Failed to refund interview credit", interviewId, error);
+    }
+  }
+
+  if (clientGone) {
+    await refundIfCharged();
+    return;
+  }
+
+  // Resuming: restore the transcript saved in Redis so context and the final record are kept.
+  if (!charged) {
+    try {
+      InterviewMessages.push(...await loadSavedMessages(interviewId));
+    } catch (error) {
+      console.error("Failed to load saved interview state", interviewId, error);
+    }
+  }
+
+  const githubmetadata = claim.interview;
 
   function InterviewMaker() {
-    const finalPrompt = `You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. - The Interview will have three phases 
+    const finalPrompt = `You are a senior level ${role} at a software company. You need to take a ${role} interview ${process.env.GEMINI_PROMPT!}. - The Interview will have three phases
                 - first phase contains general questions about the candidate like tell me something about yourself.
                 - second phase contains personalized questions based on the candidate's github.The user's githubdata ${JSON.stringify(githubmetadata)}.Ask questions from atleast 2 of his projects.
                 - third phase contains personalized questions based on the candidate's resume`
-    return finalPrompt
+    if (InterviewMessages.length === 0) {
+      return finalPrompt
+    }
+    const transcript = InterviewMessages
+      .map(msg => `${msg.Sender === "AI" ? "Interviewer" : "Candidate"}: ${msg.Messages}`)
+      .join("\n")
+    return `${finalPrompt}
+                - This interview was interrupted and is being resumed. Do not restart it or repeat questions already asked. The conversation so far:
+${transcript}`
   }
 
   function clearGoodbyeTimeouts() {
@@ -223,6 +330,26 @@ wss.on("connection", async (socket, req) => {
     lifecycle = "Finished";
     clearGoodbyeTimeouts();
 
+    // Persist the end first, while this connection still holds the session lock,
+    // so no reconnect can resume the interview from here on.
+    let ended = true;
+    try {
+      ended = await markInterviewEnding(interviewId);
+    } catch (error) {
+      console.error("Failed to mark interview as ending", interviewId, error);
+    }
+    if (!ended) {
+      console.warn("Interview was already ended, skipping finalize", interviewId);
+      if (socket.readyState === socket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "Interview ended"
+        }));
+      }
+      session.close();
+      socket.close();
+      return;
+    }
+
     if (aimessage) {
       await persistCompletedAiTurn();
     }
@@ -248,7 +375,7 @@ wss.on("connection", async (socket, req) => {
       console.log(error);
     }
 
-    await client.del(`interview:${interviewId}:messages`);
+    await client.del(messagesKey(interviewId));
 
     if (socket.readyState === socket.OPEN) {
       socket.send(JSON.stringify({
@@ -287,7 +414,68 @@ wss.on("connection", async (socket, req) => {
     }
   }
 
-  const session = await ai.live.connect({
+  // The interview only counts as started once Gemini confirms the session; connect() can
+  // resolve and then be closed straight away (e.g. invalid key or quota).
+  let geminiReady = false;
+
+  function onGeminiReady() {
+    if (geminiReady) {
+      return;
+    }
+    geminiReady = true;
+    if (socket.readyState !== socket.OPEN) {
+      return;
+    }
+
+    if (charged) {
+      socket.send(JSON.stringify({
+        type: "Interview started",
+        remainingTokens: claim.ok ? claim.remainingTokens : null
+      }));
+      return;
+    }
+
+    socket.send(JSON.stringify({
+      type: "Interview resumed"
+    }));
+    socket.send(JSON.stringify({
+      type: "Message list",
+      data: InterviewMessages
+    }));
+    if (InterviewMessages.length > 0) {
+      session.sendClientContent({
+        turns: [{
+          role: "user",
+          parts: [{
+            text: RESUME_PROMPT
+          }]
+        }],
+        turnComplete: true
+      });
+    }
+  }
+
+  async function handleGeminiClosed() {
+    if (lifecycle === "Finished") {
+      return;
+    }
+    lifecycle = "Finished";
+    clearGoodbyeTimeouts();
+
+    if (!geminiReady) {
+      await refundIfCharged();
+      rejectConnection(socket, Rejections.StartFailed);
+      return;
+    }
+
+    // Dropped mid-interview: the transcript is in Redis and the status is still
+    // Inprocess, so the client can reconnect and resume.
+    rejectConnection(socket, Rejections.SessionLost);
+  }
+
+  let session: Session;
+  try {
+    session = await ai.live.connect({
     model: "gemini-3.1-flash-live-preview",
     config: {
       responseModalities: [Modality.AUDIO],
@@ -300,6 +488,9 @@ wss.on("connection", async (socket, req) => {
       },
 
       async onmessage(message) {
+        if (message.setupComplete || message.serverContent) {
+          onGeminiReady();
+        }
         const content = message.serverContent;
         if (!content || lifecycle === "Finished") {
           return;
@@ -368,9 +559,22 @@ wss.on("connection", async (socket, req) => {
 
       onclose(event) {
         console.log("Gemini closed:", event.reason);
+        void handleGeminiClosed();
       },
     },
   });
+  } catch (error) {
+    console.error("Failed to start Gemini session", interviewId, error);
+    await refundIfCharged();
+    rejectConnection(socket, Rejections.StartFailed);
+    return;
+  }
+
+  if (clientGone) {
+    session.close();
+    await refundIfCharged();
+    return;
+  }
 
   console.log("Gemini session started");
 

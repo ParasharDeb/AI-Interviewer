@@ -1,7 +1,8 @@
 import express from "express"
 import cors from 'cors'
 import { Signindetails, Signupdetails, userdetails } from "./types"
-import {prisma} from "@repo/db"
+import {prisma, INTERVIEW_CREDIT_COST} from "@repo/db"
+import {client} from "@repo/redis"
 import axios from "axios"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -127,6 +128,17 @@ app.post("/github-verification", authMiddleware, async (req: AuthenticatedReques
         })
         return
     }
+    // Early check for a friendly error; the credit itself is taken atomically when the interview starts.
+    const user=await prisma.user.findUnique({
+        where:{ id: req.userId! },
+        select:{ tokens: true }
+    })
+    if(!user || user.tokens < INTERVIEW_CREDIT_COST){
+        res.status(402).json({
+            message:"Insufficient credits. Please buy more credits to start an interview."
+        })
+        return
+    }
     const githuburl=data.githuburl.endsWith("/")?data.githuburl.slice(0,-1):data.githuburl
     const githubname=githuburl.split("/").pop()
     const githubUserdata=await axios.get(`https://api.github.com/users/${githubname}/repos`)
@@ -140,7 +152,7 @@ app.post("/github-verification", authMiddleware, async (req: AuthenticatedReques
         const interview= await prisma.interview.create({
             data:{
                 githubmetadata:githubrepodetails,
-                status:'Inprocess',
+                status:'Pre',
                 userID: req.userId!
             }
         })
@@ -225,7 +237,7 @@ app.get("/user/interviews", authMiddleware, async (req: AuthenticatedRequest, re
     try {
         const interviews = await prisma.interview.findMany({
             where: { userID: req.userId! },
-            orderBy: { id: "desc" },
+            orderBy: { createdAt: "desc" },
             include: {
                 _count: {
                     select: { messages: true }
@@ -236,7 +248,7 @@ app.get("/user/interviews", authMiddleware, async (req: AuthenticatedRequest, re
         return res.json(interviews.map((interview: any) => ({
             id: interview.id,
             role: interview.githubmetadata?.[0]?.name || "General",
-            createdAt: new Date().toISOString(),
+            createdAt: interview.createdAt.toISOString(),
             messageCount: interview._count.messages,
             status: interview.status,
             score: interview.score,
@@ -244,6 +256,28 @@ app.get("/user/interviews", authMiddleware, async (req: AuthenticatedRequest, re
         })))
     } catch (error) {
         return res.status(500).json({ message: "Unable to fetch interviews" })
+    }
+})
+
+// One point per scored interview, oldest first, for the dashboard performance graph.
+app.get("/user/interviews/performance", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    try {
+        const interviews = await prisma.interview.findMany({
+            where: { userID: req.userId!, status: "Ended" },
+            select: { id: true, score: true, createdAt: true, startedAt: true }
+        })
+
+        const points = interviews
+            .map((interview: { id: string, score: number, createdAt: Date, startedAt: Date | null }) => ({
+                id: interview.id,
+                date: (interview.startedAt ?? interview.createdAt).toISOString(),
+                score: interview.score
+            }))
+            .sort((a: { date: string }, b: { date: string }) => a.date.localeCompare(b.date))
+
+        return res.json({ points })
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch interview performance" })
     }
 })
 
@@ -294,6 +328,52 @@ app.get("/interview/:id/messages", authMiddleware, async (req, res) => {
         })
     } catch (error) {
         return res.status(500).json({ message: "Unable to fetch interview messages" })
+    }
+})
+
+// Lets the interview page decide, from the ID in its URL, whether to start, resume or show "ended".
+app.get("/interview/:id/state", authMiddleware, async (req: AuthenticatedRequest, res) => {
+    const id = String(req.params.id)
+
+    try {
+        const interview = await prisma.interview.findUnique({
+            where: { id },
+            select: { userID: true, status: true }
+        })
+
+        if (!interview || interview.userID !== req.userId) {
+            return res.status(404).json({ message: "Interview not found" })
+        }
+
+        if (interview.status === "Marking" || interview.status === "Ended") {
+            return res.status(409).json({
+                status: interview.status,
+                resumable: false,
+                message: "This interview has already ended and cannot be resumed."
+            })
+        }
+
+        const saved = await client.lrange(`interview:${id}:messages`, 0, -1)
+        const messages = saved.flatMap((entry: string) => {
+            try {
+                const message = JSON.parse(entry)
+                return [{
+                    text: message.message,
+                    sender: message.sender === "AI" ? "ai" : "me",
+                    createdAt: message.createdAt
+                }]
+            } catch {
+                return []
+            }
+        })
+
+        return res.json({
+            status: interview.status,
+            resumable: interview.status === "Inprocess",
+            messages
+        })
+    } catch (error) {
+        return res.status(500).json({ message: "Unable to fetch interview state" })
     }
 })
 

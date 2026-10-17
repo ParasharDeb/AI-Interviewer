@@ -49,4 +49,15 @@ await prisma.interview.update({
   },
 });
 }
-rating_Interview()
+// Keep consuming the queue; brpop blocks until the next finished interview arrives.
+async function main(){
+  while(true){
+    try {
+      await rating_Interview()
+    } catch (error) {
+      console.error("Failed to rate interview", error)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+}
+main()
